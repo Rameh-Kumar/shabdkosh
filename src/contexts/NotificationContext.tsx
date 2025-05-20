@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import Notification from '../components/UI/Notification';
+import Notification from '../components/ui/Notification';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 

@@ -5,9 +5,9 @@ const AboutPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">About Lexiai</h1>
+        <h1 className="text-4xl font-bold mb-4">About Shabdkosh</h1>
         <p className="text-xl text-gray-600 dark:text-gray-400">
-          Empowering language learning through AI-powered dictionary services
+          Bridging languages through AI-powered dictionary and translation services
         </p>
       </div>
 
@@ -16,7 +16,7 @@ const AboutPage: React.FC = () => {
           <BookOpen className="text-indigo-600 dark:text-indigo-400 mb-4" size={32} />
           <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
           <p className="text-gray-600 dark:text-gray-400">
-            To make comprehensive word definitions and language learning accessible to everyone through innovative AI technology.
+            To make language learning and understanding accessible to everyone through our comprehensive AI-powered dictionary and translation services.
           </p>
         </div>
 
@@ -24,29 +24,29 @@ const AboutPage: React.FC = () => {
           <Award className="text-indigo-600 dark:text-indigo-400 mb-4" size={32} />
           <h2 className="text-2xl font-bold mb-4">Our Values</h2>
           <p className="text-gray-600 dark:text-gray-400">
-            We believe in accuracy, accessibility, and continuous improvement in our services to help users master language.
+            We are committed to linguistic accuracy, cultural sensitivity, and making language learning an enriching experience for everyone.
           </p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md mb-12">
-        <h2 className="text-2xl font-bold mb-6">Why Choose Lexiai?</h2>
+        <h2 className="text-2xl font-bold mb-6">Why Choose Shabdkosh?</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex items-start">
             <Globe className="text-indigo-600 dark:text-indigo-400 mr-4 flex-shrink-0" size={24} />
             <div>
-              <h3 className="font-bold mb-2">Global Access</h3>
+              <h3 className="font-bold mb-2">Multilingual Support</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Available worldwide with offline capabilities for uninterrupted learning.
+                Comprehensive dictionary and translation support for multiple languages, available worldwide.
               </p>
             </div>
           </div>
           <div className="flex items-start">
             <Users className="text-indigo-600 dark:text-indigo-400 mr-4 flex-shrink-0" size={24} />
             <div>
-              <h3 className="font-bold mb-2">Community Driven</h3>
+              <h3 className="font-bold mb-2">AI-Powered</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Built with user feedback and continuous community engagement.
+                Advanced AI technology provides accurate and contextual word definitions and translations.
               </p>
             </div>
           </div>

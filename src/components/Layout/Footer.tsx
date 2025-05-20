@@ -9,10 +9,12 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Column 1: About */}
           <div>
-            <div className="flex items-center mb-4">
-              <BookOpen className="text-indigo-600 dark:text-indigo-400 mr-2" size={24} />
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Shabdkosh</h2>
-            </div>
+            <Link to="/" className="flex items-center mb-4 group">
+              <BookOpen className="text-indigo-600 dark:text-indigo-400 mr-2 group-hover:scale-110 transition-transform duration-200" size={24} />
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                Shabdkosh
+              </h2>
+            </Link>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Your context-aware AI dictionary that understands words the way you do, providing the most relevant definitions based on context.
             </p>

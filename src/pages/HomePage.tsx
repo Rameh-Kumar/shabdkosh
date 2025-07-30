@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Cloud, Globe } from 'lucide-react';
+import { Brain, Globe } from 'lucide-react';
 import { useWord } from '../contexts/WordContext';
 
 const HomePage: React.FC = () => {
@@ -20,20 +20,13 @@ const HomePage: React.FC = () => {
         <div className="card p-6 animate__animated animate__fadeIn">
           <h2 className="text-2xl font-bold mb-2">Welcome to Shabdkosh</h2>
           <p className="mb-4">Your context-aware AI dictionary that understands words the way you do, providing the most relevant definitions based on context.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border rounded-md p-4 bg-indigo-50 dark:bg-indigo-900 dark:bg-opacity-20">
               <div className="flex items-center mb-2">
                 <Brain className="text-indigo-500 mr-2" size={20} />
                 <h3 className="font-semibold">AI-Powered Definitions</h3>
               </div>
               <p className="text-sm">Get comprehensive definitions powered by advanced AI technology.</p>
-            </div>
-            <div className="border rounded-md p-4 bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20">
-              <div className="flex items-center mb-2">
-                <Cloud className="text-purple-500 mr-2" size={20} />
-                <h3 className="font-semibold">Offline Access</h3>
-              </div>
-              <p className="text-sm">Save words for offline access and continue learning anywhere.</p>
             </div>
             <div className="border rounded-md p-4 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20">
               <div className="flex items-center mb-2">

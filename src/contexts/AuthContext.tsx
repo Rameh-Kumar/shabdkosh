@@ -1,18 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useDatabase } from './DatabaseContext';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-let supabase;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('Supabase URL and Key are not set in environment variables - running in development mode');
-  supabase = createClient('https://ohuzhsdmlechlijzgdya.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9odXpoc2RtbGVjaGxpanpnZHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1OTgzMjgsImV4cCI6MjA2MjE3NDMyOH0.b6z7o84ZX9zlgJiTeWkxuxW80vAp0OZ14AqWbRUR7e4');
-} else {
-  supabase = createClient(supabaseUrl, supabaseKey);
+  throw new Error('Supabase URL and Key must be set in environment variables');
 }
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface User {
   id: string;
@@ -61,6 +60,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         password
       });
+
+      if (!error) {
+        logEvent(analytics, 'login', { method: 'email_password' });
+      }
   
       if (error) {
         console.error('Error during login:', error);
@@ -109,6 +112,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
+      if (!error) {
+        logEvent(analytics, 'sign_up', { method: 'email_password' });
+      }
+
       if (error) {
         console.error('Error during registration:', error);
         throw error;
@@ -143,6 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await supabase.auth.signOut();
       setUser(null);
+      logEvent(analytics, 'logout');
 
       const prefs = await getPreference('userPreferences') || {};
       delete prefs.user;

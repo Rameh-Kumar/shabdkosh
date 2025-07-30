@@ -2,15 +2,18 @@ import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 
 const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const { clearHistory } = useDatabase();
+  const { clearHistory, clearAllFavorites, clearAllOfflineWords } = useDatabase();
   const { showNotification } = useNotification();
 
   const handleClearHistory = async () => {
     await clearHistory();
     showNotification('Search history cleared', 'success');
+    logEvent(analytics, 'clear_search_history');
   };
 
   return (
@@ -33,13 +36,33 @@ const SettingsPage: React.FC = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">Data Management</h3>
-        <button
-          onClick={handleClearHistory}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-        >
-          Clear Search History
-        </button>
+          <h3 className="text-lg font-semibold mb-2">Clear Data</h3>
+          <button
+            onClick={handleClearHistory}
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 mb-2"
+          >
+            Clear Search History
+          </button>
+          <button
+            onClick={async () => {
+              await clearAllFavorites();
+              showNotification('All favorites cleared', 'success');
+              logEvent(analytics, 'clear_all_favorites_from_settings');
+            }}
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+          >
+            Clear All Favorites
+          </button>
+          <button
+            onClick={async () => {
+              await clearAllOfflineWords();
+              showNotification('All offline words cleared', 'success');
+              logEvent(analytics, 'clear_all_offline_words_from_settings');
+            }}
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 mt-2"
+          >
+            Clear All Offline Words
+          </button>
       </div>
     </div>
   );

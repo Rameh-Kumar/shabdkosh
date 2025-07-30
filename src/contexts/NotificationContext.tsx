@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import Notification from '../components/ui/Notification';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
@@ -22,10 +24,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const id = Math.random().toString(36).substring(2, 11);
     
     setNotifications(prev => [...prev, { id, message, type }]);
+    logEvent(analytics, 'notification_shown', { message, type });
     
     // Auto-remove notification after 3 seconds
     setTimeout(() => {
       setNotifications(prev => prev.filter(notification => notification.id !== id));
+    logEvent(analytics, 'notification_closed', { id });
     }, 3000);
   };
 

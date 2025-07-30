@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 import { useDatabase, WordData } from '../contexts/DatabaseContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { X } from 'lucide-react';
@@ -23,6 +25,7 @@ const OfflinePage: React.FC = () => {
   const handleRemove = async (word: string) => {
     await removeFromOffline(word);
     showNotification(`"${word}" removed from offline storage`, 'info');
+    logEvent(analytics, 'remove_from_offline', { word });
     await loadOfflineWords();
   };
 
@@ -33,6 +36,7 @@ const OfflinePage: React.FC = () => {
   const confirmClearAll = async () => {
     await clearAllOfflineWords();
     showNotification('All offline words have been cleared', 'info');
+    logEvent(analytics, 'clear_all_offline_words');
     setShowConfirmation(false);
     await loadOfflineWords();
   };

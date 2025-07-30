@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Cloud, Zap, Globe, Heart, History } from 'lucide-react';
+import { Brain, Cloud, Zap, Globe, Heart, BookOpen } from 'lucide-react';
 
 const FeaturesPage: React.FC = () => {
   return (
@@ -53,10 +53,10 @@ const FeaturesPage: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <History className="text-indigo-600 dark:text-indigo-400 mb-4" size={32} />
-          <h2 className="text-2xl font-bold mb-4">Search History</h2>
+          <BookOpen className="text-indigo-600 dark:text-indigo-400 mb-4" size={32} />
+          <h2 className="text-2xl font-bold mb-4">Word of the Day</h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Keep track of your searches and easily revisit previously looked-up words.
+            Expand your vocabulary daily with our featured word, complete with definitions and examples.
           </p>
         </div>
       </div>

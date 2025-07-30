@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Heart, History, Download, X } from 'lucide-react';
+import { Home, Heart, X } from 'lucide-react';
 import { useWord } from '../../contexts/WordContext';
 import { useDatabase } from '../../contexts/DatabaseContext';
-import { motion, AnimatePresence } from 'framer-motion';
+// Animation imports commented out since we're not using them currently
+// import { motion } from 'framer-motion';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -18,11 +19,13 @@ interface MenuItem {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // State for recent searches (currently hidden but keeping for future use)
+  // To re-enable, uncomment the following line and related code
+  // const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { getWordOfTheDay, searchWord } = useWord();
-  const { getHistory, clearHistory, removeWordFromHistory, isWordFavorited, addToFavorites, removeFromFavorites } = useDatabase();
+  const { isWordFavorited, addToFavorites, removeFromFavorites } = useDatabase();
   const [wotdFavorited, setWotdFavorited] = useState(false);
   
   const wordOfDay = getWordOfTheDay();
@@ -36,6 +39,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
     checkWotdFavorited();
   }, [isWordFavorited, wordOfDay.word]);
 
+  // Load recent searches (functionality hidden but keeping for future use)
+  // To re-enable, uncomment this effect and related code
+  /*
   useEffect(() => {
     const loadRecentSearches = async () => {
       const history = await getHistory();
@@ -53,7 +59,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
     };
     
     loadRecentSearches();
-  }, [getHistory, pathname]);
+  }, [pathname, getHistory]);
+  */
 
   const toggleWotdFavorite = async () => {
     if (wotdFavorited) {
@@ -67,8 +74,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
   const menuItems: MenuItem[] = [
     { id: 'home', label: 'Home', icon: <Home size={18} />, path: '/' },
     { id: 'favorites', label: 'Favorites', icon: <Heart size={18} />, path: '/favorites' },
-    { id: 'history', label: 'Search History', icon: <History size={18} />, path: '/history' },
-    { id: 'offline', label: 'Offline Words', icon: <Download size={18} />, path: '/offline' },
+    // Hidden for now, but keeping the code for future use
+    // { id: 'history', label: 'Search History', icon: <History size={18} />, path: '/history' },
+    // { id: 'offline', label: 'Offline Words', icon: <Download size={18} />, path: '/offline' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -85,11 +93,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
     }
   };
 
+  // Function to handle removing a word from recent searches
+  // (Functionality hidden but keeping for future use)
+  // To re-enable, uncomment this function and related imports
+  /*
   const handleRemoveWord = async (e: React.MouseEvent, word: string) => {
     e.stopPropagation();
     await removeWordFromHistory(word);
     setRecentSearches(prev => prev.filter(w => w !== word));
   };
+  */
 
   const sidebarClass = `sidebar bg-gray-50 dark:bg-gray-800 w-64 md:w-72 flex-shrink-0 h-screen overflow-y-auto md:sticky top-16 ${isOpen ? 'open' : ''}`;
 
@@ -124,51 +137,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, closeSidebar }) => {
         
         <hr className="my-4 border-gray-200 dark:border-gray-700" />
         
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-md font-semibold">Recent Searches</h3>
-          {recentSearches.length > 0 && (
-            <button
-              onClick={() => clearHistory()}
-              className="text-xs text-gray-500 hover:text-red-500 flex items-center"
-              aria-label="Clear recent searches"
-            >
-              <X size={14} className="mr-1" />
-              Clear
-            </button>
-          )}
-        </div>
-        <div className="space-y-2">
-          <AnimatePresence>
-            {recentSearches.length > 0 ? (
-              recentSearches.map((word, index) => (
-                <motion.div
-                  key={word}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex justify-between items-center hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded cursor-pointer group"
-                  onClick={() => handleWordClick(word)}
-                >
-                  <span className="text-indigo-600 dark:text-indigo-400 hover:underline">{word}</span>
-                  <button
-                    onClick={(e) => handleRemoveWord(e, word)}
-                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-                    aria-label={`Remove ${word} from recent searches`}
-                  >
-                    <X size={14} />
-                  </button>
-                </motion.div>
-              ))
-            ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                No recent searches
-              </div>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        <hr className="my-4 border-gray-200 dark:border-gray-700" />
         
         <h3 className="text-md font-semibold mb-2">Word of the Day</h3>
         <div className="card p-3">

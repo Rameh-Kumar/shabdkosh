@@ -3,8 +3,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from '../pages/HomePage';
 import DefinitionPage from '../pages/DefinitionPage';
 import FavoritesPage from '../pages/FavoritesPage';
-import HistoryPage from '../pages/HistoryPage';
-import OfflinePage from '../pages/OfflinePage';
+import ProtectedRoute from '../components/Auth/ProtectedRoute';
+// Hidden pages - keeping the code for future use
+// import HistoryPage from '../pages/HistoryPage';
+// import OfflinePage from '../pages/OfflinePage';
 import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/SettingsPage';
 import AboutPage from '../pages/AboutPage';
@@ -19,10 +21,12 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/word/:word" element={<DefinitionPage />} />
-      <Route path="/favorites" element={<FavoritesPage />} />
+      <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+      {/* Hidden pages - keeping the code for future use
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/offline" element={<OfflinePage />} />
-      <Route path="/profile" element={<ProfilePage />} />
+      */}
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />

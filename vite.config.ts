@@ -78,7 +78,7 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin === 'http://localhost:5173' || url.origin === 'https://your-production-domain.com',
+            urlPattern: ({ url }) => url.origin.includes('localhost') || url.origin === 'https://your-production-domain.com',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'shabdkosh-cache',
@@ -108,6 +108,6 @@ export default defineConfig({
     })
   ],
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    exclude: [],
   },
 });

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { Heart } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
@@ -23,6 +25,7 @@ const FavoritesPage: React.FC = () => {
   const handleRemove = async (word: string) => {
     await removeFromFavorites(word);
     await loadFavorites();
+    logEvent(analytics, 'remove_from_favorites', { word });
   };
 
   const handleClearAll = async () => {
@@ -32,6 +35,7 @@ const FavoritesPage: React.FC = () => {
   const confirmClearAll = async () => {
     await clearAllFavorites();
     showNotification('All favorites have been cleared', 'info');
+    logEvent(analytics, 'clear_all_favorites');
     setShowConfirmation(false);
     await loadFavorites();
   };

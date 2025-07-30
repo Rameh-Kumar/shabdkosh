@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Volume2, Heart, BookOpen, List, Sparkles, Link2, Download } from 'lucide-react';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
+import { Volume2, Heart, BookOpen, List, Sparkles, Link2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useWord } from '../contexts/WordContext';
 import { useDatabase } from '../contexts/DatabaseContext';
@@ -19,7 +21,7 @@ const sectionVariants = {
 const DefinitionPage: React.FC = () => {
   const { word } = useParams<{ word: string }>();
   const { initializeWord, wordData, isLoading, error, searchWord } = useWord();
-  const { isWordFavorited, addToFavorites, removeFromFavorites, saveForOffline } = useDatabase();
+  const { isWordFavorited, addToFavorites, removeFromFavorites } = useDatabase();
   const { showNotification } = useNotification();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -42,9 +44,11 @@ const DefinitionPage: React.FC = () => {
     if (isFavorited) {
       await removeFromFavorites(wordData.word);
       showNotification('Removed from favorites', 'info');
+      logEvent(analytics, 'remove_from_favorites', { word: wordData.word });
     } else {
       await addToFavorites(wordData.word);
       showNotification('Added to favorites', 'success');
+      logEvent(analytics, 'add_to_favorites', { word: wordData.word });
     }
     setIsFavorited(!isFavorited);
   };
@@ -213,20 +217,6 @@ const DefinitionPage: React.FC = () => {
                 disabled={isPlayingAudio}
               >
                 <Volume2 size={22} />
-              </button>
-              <button 
-                onClick={() => {
-                  // Save word for offline use
-                  if (wordData) {
-                    saveForOffline(wordData);
-                    showNotification(`"${wordData.word}" saved for offline use`, 'success');
-                  }
-                }}
-                className="p-2 hover:bg-white/20 rounded-full transition-colors focus:ring-2 focus:ring-white"
-                aria-label="Download for offline use"
-                title="Save for offline use"
-              >
-                <Download size={22} />
               </button>
               <button 
                 onClick={handleFavoriteClick}

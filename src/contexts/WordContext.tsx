@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 import { useDatabase, WordData } from './DatabaseContext';
 import { useNotification } from './NotificationContext';
 import * as wordService from '../services/wordService';
@@ -136,6 +138,7 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Track this search for trending words
     wordService.trackWordSearch(searchTerm);
+    logEvent(analytics, 'word_search', { search_term: searchTerm });
     
     navigate(`/word/${searchTerm}`);
   };

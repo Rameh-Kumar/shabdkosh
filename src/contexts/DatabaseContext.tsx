@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { openDB, IDBPDatabase } from 'idb';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { supabase } from '../services/supabaseClient';
 import { DefinitionGroup } from '../services/geminiService';
+import { analytics } from '../firebase';
+import { logEvent } from 'firebase/analytics';
 
 export interface WordData {
   word: string;
@@ -32,8 +34,6 @@ export interface PreferenceItem {
 }
 
 interface DatabaseContextType {
-  db: IDBPDatabase | null;
-  isInitialized: boolean;
   // Word operations
   getWord: (word: string) => Promise<WordData | undefined>;
   saveWord: (wordData: WordData) => Promise<void>;
@@ -61,209 +61,238 @@ interface DatabaseContextType {
   setPreference: (id: string, data: PreferenceItem) => Promise<void>;
 }
 
-const DB_NAME = 'lexiai-db';
-const DB_VERSION = 1;
-
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 
 export const DatabaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [db, setDb] = useState<IDBPDatabase | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
-    const initDatabase = async () => {
-      try {
-        const database = await openDB(DB_NAME, DB_VERSION, {
-          upgrade(db) {
-            // Words store
-            if (!db.objectStoreNames.contains('words')) {
-              db.createObjectStore('words', { keyPath: 'word' });
-            }
-            
-            // Favorites store
-            if (!db.objectStoreNames.contains('favorites')) {
-              db.createObjectStore('favorites', { keyPath: 'word' });
-            }
-            
-            // History store
-            if (!db.objectStoreNames.contains('history')) {
-              const historyStore = db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
-              historyStore.createIndex('word', 'word', { unique: false });
-              historyStore.createIndex('timestamp', 'timestamp', { unique: false });
-            }
-            
-            // User preferences store
-            if (!db.objectStoreNames.contains('preferences')) {
-              db.createObjectStore('preferences', { keyPath: 'id' });
-            }
-            
-            // Offline words store
-            if (!db.objectStoreNames.contains('offline')) {
-              db.createObjectStore('offline', { keyPath: 'word' });
-            }
-          },
-        });
-        
-        setDb(database);
-        setIsInitialized(true);
-        
-        // Set default preferences if not already set
-        const preferencesStore = database.transaction('preferences', 'readonly').objectStore('preferences');
-        const userPreferences = await preferencesStore.get('userPreferences');
-        
-        if (!userPreferences) {
-          const defaultPreferences = {
-            id: 'userPreferences',
-            theme: 'light',
-            fontSize: 'medium',
-            notifications: true,
-            lastVisit: new Date().toISOString()
-          };
-          
-          await database.put('preferences', defaultPreferences);
-        } else {
-          // Update last visit
-          const updatedPreferences = {
-            ...userPreferences,
-            lastVisit: new Date().toISOString()
-          };
-          
-          await database.put('preferences', updatedPreferences);
-        }
-      } catch (error) {
-        console.error('Failed to initialize database:', error);
-      }
-    };
 
-    initDatabase();
-  }, []);
-
-  // Word operations
+  // Word operations (Supabase)
   const getWord = async (word: string): Promise<WordData | undefined> => {
-    if (!db) return undefined;
-    return db.get('words', word);
+    const { data, error } = await supabase
+      .from('words')
+      .select('*')
+      .eq('word', word)
+      .single();
+    if (error) {
+      console.error('Supabase getWord error:', error);
+      return undefined;
+    }
+    return data as WordData;
   };
 
   const saveWord = async (wordData: WordData): Promise<void> => {
-    if (!db) return;
-    await db.put('words', wordData);
+    const { error } = await supabase
+      .from('words')
+      .upsert([wordData]);
+    if (!error) {
+      logEvent(analytics, 'save_for_offline', { word: wordData.word });
+    }
+    if (error) {
+      console.error('Supabase saveWord error:', error);
+    }
   };
 
   const deleteWord = async (word: string): Promise<void> => {
-    if (!db) return;
-    await db.delete('words', word);
+    const { error } = await supabase
+      .from('words')
+      .delete()
+      .eq('word', word);
+    if (error) {
+      console.error('Supabase deleteWord error:', error);
+    }
   };
 
   const getAllWords = async (): Promise<WordData[]> => {
-    if (!db) return [];
-    return db.getAll('words');
+    const { data, error } = await supabase
+      .from('words')
+      .select('*');
+    if (error) {
+      console.error('Supabase getAllWords error:', error);
+      return [];
+    }
+    return data as WordData[];
   };
 
-  // History operations
+
+  // History operations (Supabase)
   const addToHistory = async (word: string): Promise<void> => {
-    if (!db) return;
     const historyItem: HistoryItem = {
       word,
       timestamp: new Date().toISOString()
     };
-    await db.add('history', historyItem);
-  };
-
-  const getHistory = async (): Promise<HistoryItem[]> => {
-    if (!db) return [];
-    return db.getAllFromIndex('history', 'timestamp');
-  };
-
-  const clearHistory = async (): Promise<void> => {
-    if (!db) return;
-    await db.clear('history');
-  };
-  
-  const removeWordFromHistory = async (word: string): Promise<void> => {
-    if (!db) return;
-    const tx = db.transaction('history', 'readwrite');
-    const store = tx.objectStore('history');
-    const wordIndex = store.index('word');
-    let cursor = await wordIndex.openCursor(word);
-    
-    while (cursor) {
-      await cursor.delete();
-      cursor = await cursor.continue();
+    const { error } = await supabase
+      .from('history')
+      .insert([historyItem]);
+    if (error) {
+      console.error('Supabase addToHistory error:', error);
     }
   };
 
-  // Favorites operations
+  const getHistory = async (): Promise<HistoryItem[]> => {
+    const { data, error } = await supabase
+      .from('history')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    if (error) {
+      console.error('Supabase getHistory error:', error);
+      return [];
+    }
+    return data as HistoryItem[];
+  };
+
+  const clearHistory = async (): Promise<void> => {
+    const { error } = await supabase
+      .from('history')
+      .delete(); // delete all
+    if (error) {
+      console.error('Supabase clearHistory error:', error);
+    }
+  };
+
+  const removeWordFromHistory = async (word: string): Promise<void> => {
+    const { error } = await supabase
+      .from('history')
+      .delete()
+      .eq('word', word);
+    if (error) {
+      console.error('Supabase removeWordFromHistory error:', error);
+    }
+  };
+
+
+  // Favorites operations (Supabase)
   const addToFavorites = async (word: string): Promise<void> => {
-    if (!db) return;
     const favoriteItem: FavoriteItem = {
       word,
       timestamp: new Date().toISOString()
     };
-    await db.put('favorites', favoriteItem);
+    const { error } = await supabase
+      .from('favorites')
+      .upsert([favoriteItem]);
+    if (error) {
+      console.error('Supabase addToFavorites error:', error);
+    }
   };
 
   const removeFromFavorites = async (word: string): Promise<void> => {
-    if (!db) return;
-    await db.delete('favorites', word);
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('word', word);
+    if (error) {
+      console.error('Supabase removeFromFavorites error:', error);
+    }
   };
 
   const clearAllFavorites = async (): Promise<void> => {
-    if (!db) return;
-    await db.clear('favorites');
+    const { error } = await supabase
+      .from('favorites')
+      .delete(); // delete all
+    if (error) {
+      console.error('Supabase clearAllFavorites error:', error);
+    }
   };
 
   const getFavorites = async (): Promise<FavoriteItem[]> => {
-    if (!db) return [];
-    return db.getAll('favorites');
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('*');
+    if (error) {
+      console.error('Supabase getFavorites error:', error);
+      return [];
+    }
+    return data as FavoriteItem[];
   };
 
   const isWordFavorited = async (word: string): Promise<boolean> => {
-    if (!db) return false;
-    const result = await db.get('favorites', word);
-    return !!result;
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('word')
+      .eq('word', word)
+      .single();
+    if (error) {
+      return false;
+    }
+    return !!data;
   };
 
-  // Offline words operations
+
+  // Offline words operations (Supabase)
   const saveForOffline = async (wordData: WordData): Promise<void> => {
-    if (!db) return;
-    await db.put('offline', wordData);
+    const { error } = await supabase
+      .from('offline')
+      .upsert([wordData]);
+    if (error) {
+      console.error('Supabase saveForOffline error:', error);
+    }
   };
 
   const removeFromOffline = async (word: string): Promise<void> => {
-    if (!db) return;
-    await db.delete('offline', word);
+    const { error } = await supabase
+      .from('offline')
+      .delete()
+      .eq('word', word);
+    if (error) {
+      console.error('Supabase removeFromOffline error:', error);
+    }
   };
 
   const clearAllOfflineWords = async (): Promise<void> => {
-    if (!db) return;
-    await db.clear('offline');
+    const { error } = await supabase
+      .from('offline')
+      .delete(); // delete all
+    if (error) {
+      console.error('Supabase clearAllOfflineWords error:', error);
+    }
   };
 
   const getOfflineWords = async (): Promise<WordData[]> => {
-    if (!db) return [];
-    return db.getAll('offline');
+    const { data, error } = await supabase
+      .from('offline')
+      .select('*');
+    if (error) {
+      console.error('Supabase getOfflineWords error:', error);
+      return [];
+    }
+    return data as WordData[];
   };
 
   const isWordOffline = async (word: string): Promise<boolean> => {
-    if (!db) return false;
-    const result = await db.get('offline', word);
-    return !!result;
+    const { data, error } = await supabase
+      .from('offline')
+      .select('word')
+      .eq('word', word)
+      .single();
+    if (error) {
+      return false;
+    }
+    return !!data;
   };
 
-  // Preferences operations
+
+  // Preferences operations (Supabase)
   const getPreference = async (id: string): Promise<PreferenceItem | null> => {
-    if (!db) return null;
-    return db.get('preferences', id);
+    const { data, error } = await supabase
+      .from('preferences')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) {
+      return null;
+    }
+    return data as PreferenceItem;
   };
 
   const setPreference = async (id: string, data: PreferenceItem): Promise<void> => {
-    if (!db) return;
-    await db.put('preferences', { id, ...data });
+    const { error } = await supabase
+      .from('preferences')
+      .upsert([{ id, ...data }]);
+    if (error) {
+      console.error('Supabase setPreference error:', error);
+    }
   };
 
   const contextValue: DatabaseContextType = {
-    db,
-    isInitialized,
     getWord,
     saveWord,
     deleteWord,

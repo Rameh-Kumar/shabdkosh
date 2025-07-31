@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password
       });
 
-      if (!error) {
+      if (!error && analytics) {
         logEvent(analytics, 'login', { method: 'email_password' });
       }
   
@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
-      if (!error) {
+      if (!error && analytics) {
         logEvent(analytics, 'sign_up', { method: 'email_password' });
       }
 
@@ -150,7 +150,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await supabase.auth.signOut();
       setUser(null);
-      logEvent(analytics, 'logout');
+      if (analytics) {
+        logEvent(analytics, 'logout');
+      }
 
       const prefs = await getPreference('userPreferences') || {};
       delete prefs.user;

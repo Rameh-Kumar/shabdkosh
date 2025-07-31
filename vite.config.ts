@@ -1,9 +1,38 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('framer-motion') || id.includes('lucide-react')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('d3')) {
+              return 'vendor-d3';
+            }
+            return 'vendor'; // all other node_modules
+          }
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+      }
+    },
+    chunkSizeWarningLimit: 600
+  },
   plugins: [
     react(),
     VitePWA({
@@ -108,6 +137,18 @@ export default defineConfig({
     })
   ],
   optimizeDeps: {
-    exclude: [],
+    include: ['react', 'react-dom'],
+    exclude: [
+      'firebase',
+      'firebase/app',
+      'firebase/analytics',
+      'react-router-dom',
+      'lucide-react'
+    ],
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
   },
 });

@@ -1,9 +1,8 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
-// For debugging purposes
+// Only log whether the API key is available, not its value
 console.log('Gemini API Key available:', !!GEMINI_API_KEY);
-console.log('Gemini API Key value:', GEMINI_API_KEY ? `${GEMINI_API_KEY.substring(0, 4)}...` : 'undefined');
 
 // Test function to verify API key is working
 export const testGeminiApiKey = async (): Promise<boolean> => {

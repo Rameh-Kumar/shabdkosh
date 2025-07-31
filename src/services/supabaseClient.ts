@@ -7,11 +7,8 @@ let supabaseInstance;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase credentials:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
-  // Use fallback values from .env.local instead of throwing an error
-  const fallbackUrl = 'https://ohuzhsdmlechlijzgdya.supabase.co';
-  const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9odXpoc2RtbGVjaGxpanpnZHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1OTgzMjgsImV4cCI6MjA2MjE3NDMyOH0.b6z7o84ZX9zlgJiTeWkxuxW80vAp0OZ14AqWbRUR7e4';
-  console.warn('Using fallback Supabase credentials');
-  supabaseInstance = createClient(fallbackUrl, fallbackKey);
+  throw new Error('Supabase URL and API key must be provided in environment variables. Please check your .env file.');
+  // No fallback credentials for security reasons
 } else {
   supabaseInstance = createClient(supabaseUrl, supabaseKey);
 }

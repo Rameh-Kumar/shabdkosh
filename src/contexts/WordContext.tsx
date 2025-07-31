@@ -41,12 +41,12 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setApiKeyValid(isValid);
       if (!isValid) {
         console.error('Gemini API key validation failed');
-        showNotification('Dictionary service configuration issue detected', 'error');
+        // Removed notification to stop showing error message
       }
     };
     
     checkApiKey();
-  }, [showNotification]);
+  }, []);
 
   // Function to fetch word data without navigation
   const initializeWord = async (word: string): Promise<void> => {
@@ -138,7 +138,9 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Track this search for trending words
     wordService.trackWordSearch(searchTerm);
-    logEvent(analytics, 'word_search', { search_term: searchTerm });
+    if (analytics) {
+      logEvent(analytics, 'word_search', { search_term: searchTerm });
+    }
     
     navigate(`/word/${searchTerm}`);
   };

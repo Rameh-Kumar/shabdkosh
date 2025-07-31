@@ -44,11 +44,15 @@ const DefinitionPage: React.FC = () => {
     if (isFavorited) {
       await removeFromFavorites(wordData.word);
       showNotification('Removed from favorites', 'info');
-      logEvent(analytics, 'remove_from_favorites', { word: wordData.word });
+      if (analytics) {
+        logEvent(analytics, 'remove_from_favorites', { word: wordData.word });
+      }
     } else {
       await addToFavorites(wordData.word);
       showNotification('Added to favorites', 'success');
-      logEvent(analytics, 'add_to_favorites', { word: wordData.word });
+      if (analytics) {
+        logEvent(analytics, 'add_to_favorites', { word: wordData.word });
+      }
     }
     setIsFavorited(!isFavorited);
   };

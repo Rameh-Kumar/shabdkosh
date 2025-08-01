@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environment Variables Check</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #4f46e5;
+    }
+    .status {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .warning {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    pre {
+      background-color: #f3f4f6;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Environment Variables Check</h1>
+    
+    <div id="env-check" class="status">Checking environment variables...</div>
+    
+    <h2>Browser Information</h2>
+    <pre id="browser-info"></pre>
+    
+    <h2>Console Logs</h2>
+    <pre id="console-logs">No logs captured yet</pre>
+  </div>
+
+  <script>
+    // Capture console logs
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
+    
+    let logHistory = [];
+    
+    function updateLogs() {
+      document.getElementById('console-logs').textContent = logHistory.join('\n');
+    }
+    
+    console.log = function(...args) {
+      logHistory.push(`[LOG] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.log.apply(console, args);
+    };
+    
+    console.error = function(...args) {
+      logHistory.push(`[ERROR] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.error.apply(console, args);
+    };
+    
+    console.warn = function(...args) {
+      logHistory.push(`[WARN] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.warn.apply(console, args);
+    };
+    
+    console.info = function(...args) {
+      logHistory.push(`[INFO] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.info.apply(console, args);
+    };
+    
+    // Check environment variables
+    function checkEnvVariables() {
+      const envStatus = document.getElementById('env-check');
+      
+      // Create a script element to check for environment variables
+      const script = document.createElement('script');
+      script.textContent = `
+        window.envCheckResult = {};
+        try {
+          // Check if import.meta.env is available
+          if (typeof import !== 'undefined' && import.meta && import.meta.env) {
+            window.envCheckResult.importMetaAvailable = true;
+            window.envCheckResult.variables = {};
+            
+            // List of environment variables to check
+            const envVars = [
+              'VITE_GEMINI_API_KEY',
+              'VITE_SUPABASE_URL',
+              'VITE_SUPABASE_ANON_KEY',
+              'VITE_FIREBASE_API_KEY',
+              'VITE_FIREBASE_AUTH_DOMAIN',
+              'VITE_FIREBASE_PROJECT_ID',
+              'VITE_FIREBASE_STORAGE_BUCKET',
+              'VITE_FIREBASE_MESSAGING_SENDER_ID',
+              'VITE_FIREBASE_APP_ID'
+            ];
+            
+            // Check each variable
+            envVars.forEach(varName => {
+              const value = import.meta.env[varName];
+              window.envCheckResult.variables[varName] = {
+                exists: value !== undefined,
+                isEmpty: value === '',
+                length: value ? value.length : 0
+              };
+            });
+          } else {
+            window.envCheckResult.importMetaAvailable = false;
+          }
+        } catch (error) {
+          window.envCheckResult.error = error.message;
+        }
+        
+        // Dispatch event when check is complete
+        window.dispatchEvent(new CustomEvent('env-check-complete'));
+      `;
+      
+      document.head.appendChild(script);
+      
+      // Listen for the check completion event
+      window.addEventListener('env-check-complete', () => {
+        const result = window.envCheckResult;
+        
+        if (result.error) {
+          envStatus.className = 'status error';
+          envStatus.innerHTML = `Error checking environment variables: ${result.error}`;
+          return;
+        }
+        
+        if (!result.importMetaAvailable) {
+          envStatus.className = 'status warning';
+          envStatus.innerHTML = 'import.meta.env is not available in this context. This is expected in a production build where environment variables are replaced at build time.';
+          
+          // Try to check for specific global variables that might have been injected
+          const globalVars = [
+            '__VITE_GEMINI_API_KEY__',
+            '__VITE_SUPABASE_URL__',
+            '__VITE_SUPABASE_ANON_KEY__',
+            '__VITE_FIREBASE_API_KEY__'
+          ];
+          
+          const globalResults = globalVars.map(varName => {
+            const exists = typeof window[varName] !== 'undefined';
+            return `${varName}: ${exists ? 'Available' : 'Missing'}`;
+          });
+          
+          envStatus.innerHTML += '<br><br>Checking for global variables:<br>' + globalResults.join('<br>');
+          return;
+        }
+        
+        // Process the results
+        const varResults = Object.entries(result.variables).map(([name, info]) => {
+          return `${name}: ${info.exists ? (info.isEmpty ? 'Empty' : 'Available') : 'Missing'} ${info.exists ? `(Length: ${info.length})` : ''}`;
+        });
+        
+        const missingCount = varResults.filter(r => r.includes('Missing')).length;
+        const emptyCount = varResults.filter(r => r.includes('Empty')).length;
+        
+        if (missingCount > 0 || emptyCount > 0) {
+          envStatus.className = 'status warning';
+          envStatus.innerHTML = `Some environment variables are missing or empty (${missingCount} missing, ${emptyCount} empty):<br>` + varResults.join('<br>');
+        } else {
+          envStatus.className = 'status success';
+          envStatus.innerHTML = 'All environment variables appear to be set:<br>' + varResults.join('<br>');
+        }
+      });
+    }
+    
+    // Get browser information
+    function getBrowserInfo() {
+      const browserInfo = document.getElementById('browser-info');
+      const info = [
+        `User Agent: ${navigator.userAgent}`,
+        `Platform: ${navigator.platform}`,
+        `Language: ${navigator.language}`,
+        `Cookies Enabled: ${navigator.cookieEnabled}`,
+        `Online: ${navigator.onLine}`,
+        `Service Worker Support: ${'serviceWorker' in navigator}`,
+        `IndexedDB Support: ${'indexedDB' in window}`,
+        `LocalStorage Support: ${'localStorage' in window}`,
+        `Screen: ${window.screen.width}x${window.screen.height}`,
+        `Window: ${window.innerWidth}x${window.innerHeight}`,
+        `Device Pixel Ratio: ${window.devicePixelRatio}`,
+        `Document Referrer: ${document.referrer}`,
+        `Document URL: ${document.URL}`
+      ];
+      
+      browserInfo.textContent = info.join('\n');
+    }
+    
+    // Run all checks
+    window.addEventListener('load', () => {
+      checkEnvVariables();
+      getBrowserInfo();
+      
+      console.log('Environment check page loaded');
+    });
+  </script>
+</body>
+</html>

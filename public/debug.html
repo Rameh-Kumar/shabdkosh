@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShabdKosh Debug Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #4f46e5;
+    }
+    .status {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .warning {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    pre {
+      background-color: #f3f4f6;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #4338ca;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ShabdKosh Debug Page</h1>
+    
+    <h2>Environment Variables Check</h2>
+    <div id="env-check" class="status">Checking environment variables...</div>
+    
+    <h2>Service Worker Status</h2>
+    <div id="sw-status" class="status">Checking service worker...</div>
+    
+    <h2>API Connectivity Tests</h2>
+    <div id="api-status" class="status">Testing API connections...</div>
+    
+    <h2>Browser Information</h2>
+    <pre id="browser-info"></pre>
+    
+    <h2>Console Logs</h2>
+    <pre id="console-logs">No logs captured yet</pre>
+    
+    <button id="copy-results">Copy Results</button>
+  </div>
+
+  <script>
+    // Capture console logs
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
+    
+    let logHistory = [];
+    
+    function updateLogs() {
+      document.getElementById('console-logs').textContent = logHistory.join('\n');
+    }
+    
+    console.log = function(...args) {
+      logHistory.push(`[LOG] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.log.apply(console, args);
+    };
+    
+    console.error = function(...args) {
+      logHistory.push(`[ERROR] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.error.apply(console, args);
+    };
+    
+    console.warn = function(...args) {
+      logHistory.push(`[WARN] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.warn.apply(console, args);
+    };
+    
+    console.info = function(...args) {
+      logHistory.push(`[INFO] ${args.join(' ')}`);
+      updateLogs();
+      originalConsole.info.apply(console, args);
+    };
+    
+    // Check environment variables
+    function checkEnvVariables() {
+      const envStatus = document.getElementById('env-check');
+      const envVars = [
+        'VITE_GEMINI_API_KEY',
+        'VITE_SUPABASE_URL',
+        'VITE_SUPABASE_ANON_KEY',
+        'VITE_FIREBASE_API_KEY',
+        'VITE_FIREBASE_AUTH_DOMAIN',
+        'VITE_FIREBASE_PROJECT_ID',
+        'VITE_FIREBASE_STORAGE_BUCKET',
+        'VITE_FIREBASE_MESSAGING_SENDER_ID',
+        'VITE_FIREBASE_APP_ID'
+      ];
+      
+      const results = [];
+      
+      envVars.forEach(varName => {
+        // We can't directly access import.meta.env here, so we'll check if the variable
+        // was injected into window during build
+        const varExists = window[varName] !== undefined;
+        results.push(`${varName}: ${varExists ? 'Available' : 'Missing'}`);
+      });
+      
+      if (results.some(r => r.includes('Missing'))) {
+        envStatus.className = 'status warning';
+        envStatus.innerHTML = 'Some environment variables may be missing:<br>' + results.join('<br>');
+      } else {
+        envStatus.className = 'status success';
+        envStatus.innerHTML = 'All environment variables appear to be set:<br>' + results.join('<br>');
+      }
+    }
+    
+    // Check service worker
+    function checkServiceWorker() {
+      const swStatus = document.getElementById('sw-status');
+      
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          if (registrations.length > 0) {
+            swStatus.className = 'status success';
+            swStatus.innerHTML = `Service Worker registered: ${registrations.length} registration(s) found`;
+            
+            // List all registrations
+            const regDetails = registrations.map((reg, i) => {
+              return `Registration ${i+1}:\n  Scope: ${reg.scope}\n  Updating: ${!!reg.updating}\n  Installing: ${!!reg.installing}\n  Active: ${!!reg.active}`;
+            }).join('\n');
+            
+            swStatus.innerHTML += `<pre>${regDetails}</pre>`;
+          } else {
+            swStatus.className = 'status warning';
+            swStatus.textContent = 'No Service Worker registrations found';
+          }
+        }).catch(error => {
+          swStatus.className = 'status error';
+          swStatus.textContent = `Service Worker error: ${error.message}`;
+        });
+      } else {
+        swStatus.className = 'status error';
+        swStatus.textContent = 'Service Worker not supported in this browser';
+      }
+    }
+    
+    // Test API connectivity
+    async function testAPIs() {
+      const apiStatus = document.getElementById('api-status');
+      const results = [];
+      
+      // Test Gemini API
+      try {
+        const geminiResponse = await fetch('/api/test-gemini');
+        const geminiData = await geminiResponse.json();
+        results.push(`Gemini API: ${geminiData.success ? 'Connected' : 'Failed'} - ${geminiData.message}`);
+      } catch (error) {
+        results.push(`Gemini API: Error - ${error.message}`);
+      }
+      
+      // Test Supabase
+      try {
+        const supabaseResponse = await fetch('/api/test-supabase');
+        const supabaseData = await supabaseResponse.json();
+        results.push(`Supabase: ${supabaseData.success ? 'Connected' : 'Failed'} - ${supabaseData.message}`);
+      } catch (error) {
+        results.push(`Supabase: Error - ${error.message}`);
+      }
+      
+      // Test Firebase
+      try {
+        const firebaseResponse = await fetch('/api/test-firebase');
+        const firebaseData = await firebaseResponse.json();
+        results.push(`Firebase: ${firebaseData.success ? 'Connected' : 'Failed'} - ${firebaseData.message}`);
+      } catch (error) {
+        results.push(`Firebase: Error - ${error.message}`);
+      }
+      
+      apiStatus.className = 'status warning';
+      apiStatus.innerHTML = 'API test endpoints not available. Check browser console for API-related errors:<br>' + 
+                           results.join('<br>');
+    }
+    
+    // Get browser information
+    function getBrowserInfo() {
+      const browserInfo = document.getElementById('browser-info');
+      const info = [
+        `User Agent: ${navigator.userAgent}`,
+        `Platform: ${navigator.platform}`,
+        `Language: ${navigator.language}`,
+        `Cookies Enabled: ${navigator.cookieEnabled}`,
+        `Online: ${navigator.onLine}`,
+        `Service Worker Support: ${'serviceWorker' in navigator}`,
+        `IndexedDB Support: ${'indexedDB' in window}`,
+        `LocalStorage Support: ${'localStorage' in window}`,
+        `Screen: ${window.screen.width}x${window.screen.height}`,
+        `Window: ${window.innerWidth}x${window.innerHeight}`,
+        `Device Pixel Ratio: ${window.devicePixelRatio}`
+      ];
+      
+      browserInfo.textContent = info.join('\n');
+    }
+    
+    // Copy results
+    document.getElementById('copy-results').addEventListener('click', () => {
+      const results = [
+        '# ShabdKosh Debug Results',
+        '',
+        '## Environment Variables',
+        document.getElementById('env-check').textContent,
+        '',
+        '## Service Worker Status',
+        document.getElementById('sw-status').textContent,
+        '',
+        '## API Connectivity',
+        document.getElementById('api-status').textContent,
+        '',
+        '## Browser Information',
+        document.getElementById('browser-info').textContent,
+        '',
+        '## Console Logs',
+        document.getElementById('console-logs').textContent
+      ].join('\n');
+      
+      navigator.clipboard.writeText(results).then(() => {
+        alert('Debug results copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy results:', err);
+        alert('Failed to copy results. Please select and copy manually.');
+      });
+    });
+    
+    // Run all checks
+    window.addEventListener('load', () => {
+      checkEnvVariables();
+      checkServiceWorker();
+      testAPIs();
+      getBrowserInfo();
+      
+      console.log('Debug page loaded and checks completed');
+    });
+  </script>
+</body>
+</html>

@@ -7,10 +7,10 @@ import { analytics } from './firebase';
 import { logEvent } from 'firebase/analytics';
 
 // Initialize Firebase Analytics (optional, if you want to log a page view on app load)
-// logEvent(analytics, 'page_view');
+// if (analytics) logEvent(analytics, 'page_view');
 
 window.addEventListener('appinstalled', () => {
-  logEvent(analytics, 'pwa_installed');
+  if (analytics) logEvent(analytics, 'pwa_installed');
   console.log('PWA was installed');
 });
 

@@ -1,5 +1,5 @@
 // src/firebase.ts
-import { initializeApp } from 'firebase/app';
+import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 
 // Define the type for Firebase config with index signature
@@ -28,18 +28,28 @@ const firebaseConfig: FirebaseConfig = {
 const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
 const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 
+// Initialize Firebase
+let app: FirebaseApp;
+let analytics: Analytics | null = null;
+
 if (missingKeys.length > 0) {
   console.warn(`Missing required Firebase configuration: ${missingKeys.join(', ')}`);
   console.warn('Firebase analytics will be disabled. Set the missing environment variables for full functionality.');
-}
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Analytics only if supported and configuration is complete
-let analytics: Analytics | null = null;
-if (missingKeys.length === 0) {
-  // Check if analytics is supported in the current environment
+  
+  try {
+    // Try to initialize with whatever config we have
+    app = initializeApp(firebaseConfig);
+    console.log('Firebase initialized with partial configuration');
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+    // Create a dummy app object to prevent crashes
+    app = {} as FirebaseApp;
+  }
+} else {
+  // All required config is available
+  app = initializeApp(firebaseConfig);
+  
+  // Initialize Analytics only if supported and configuration is complete
   isSupported().then(supported => {
     if (supported) {
       analytics = getAnalytics(app);

@@ -1,5 +1,6 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { logAnalyticsEvent } from '../firebase';
 import HomePage from '../pages/HomePage';
 import DefinitionPage from '../pages/DefinitionPage';
 import FavoritesPage from '../pages/FavoritesPage';
@@ -15,6 +16,17 @@ import TermsPage from '../pages/TermsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 const AppRoutes: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track page view
+    logAnalyticsEvent('screen_view', {
+      page_path: location.pathname + location.search,
+      page_title: document.title,
+      page_location: window.location.href,
+    });
+  }, [location]);
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />

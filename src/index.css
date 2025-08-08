@@ -1,0 +1,127 @@
+/* Import Tailwind base styles */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #8b5cf6;
+  --accent-color: #a855f7;
+  --text-color: #1f2937;
+  --bg-color: #ffffff;
+  --card-color: #f9fafb;
+  --border-color: #e5e7eb;
+}
+
+.dark {
+  --primary-color: #6366f1;
+  --secondary-color: #a78bfa;
+  --accent-color: #c084fc;
+  --text-color: #f9fafb;
+  --bg-color: #111827;
+  --card-color: #1f2937;
+  --border-color: #374151;
+}
+
+/* Ensure text is visible in dark mode */
+.dark .text-gray-600,
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900 {
+  color: #e5e7eb !important;
+}
+
+/* Ensure backgrounds are properly dark */
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: #1f2937 !important;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Playfair Display', serif;
+}
+
+.card {
+  background-color: var(--card-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-accent {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+      transform: scale(1);
+  }
+  50% {
+      transform: scale(1.05);
+  }
+  100% {
+      transform: scale(1);
+  }
+}
+
+.tab-active {
+  border-bottom: 3px solid var(--primary-color);
+  color: var(--primary-color);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--card-color) 0%, rgba(255,255,255,0.15) 50%, var(--card-color) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+      background-position: -200% 0;
+  }
+  100% {
+      background-position: 200% 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+      position: fixed;
+      z-index: 40;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+  }
+  
+  .sidebar.open {
+      transform: translateX(0);
+  }
+}

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/', // Ensures assets are loaded from the correct path
+  base: '/',
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],
@@ -11,7 +11,6 @@ export default defineConfig({
   server: {
     port: 3000,
   },
-  // This helps with client-side routing in production
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -23,5 +22,10 @@ export default defineConfig({
         },
       },
     },
+  },
+  // Ensure Vite serves the SPA for all routes in development
+  preview: {
+    port: 3000,
+    strictPort: true,
   },
 });

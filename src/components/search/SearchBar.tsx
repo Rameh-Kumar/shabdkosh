@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Sparkles } from 'lucide-react';
 import { useWord } from '../../contexts/WordContext';
 
 const SearchBar: React.FC = () => {
@@ -50,37 +50,43 @@ const SearchBar: React.FC = () => {
   };
 
   return (
-    <div ref={searchRef} className="relative w-full">
+    <div ref={searchRef} className="relative w-full max-w-3xl mx-auto group">
+      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative">
+        <div className="relative flex items-center">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search for a word..."
-            className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+            className="w-full pl-14 pr-12 py-5 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-xl text-lg text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:ring-0 focus:outline-none transition-all duration-300"
           />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
+          <Search className="absolute left-5 text-indigo-500 dark:text-indigo-400" size={24} />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           )}
         </div>
       </form>
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="absolute z-50 w-full mt-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 overflow-hidden animate-fade-in">
+          <div className="px-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/50 flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <Sparkles size={12} className="mr-2 text-indigo-500" />
+            Suggestions
+          </div>
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
               onClick={() => handleSearch(suggestion)}
-              className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 first:rounded-t-lg last:rounded-b-lg"
+              className="w-full px-6 py-3 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors flex items-center group/item"
             >
+              <Search size={16} className="mr-3 text-slate-300 group-hover/item:text-indigo-400 transition-colors" />
               {suggestion}
             </button>
           ))}

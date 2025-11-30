@@ -1,127 +1,66 @@
-/* Import Tailwind base styles */
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --primary-color: #4f46e5;
-  --secondary-color: #8b5cf6;
-  --accent-color: #a855f7;
-  --text-color: #1f2937;
-  --bg-color: #ffffff;
-  --card-color: #f9fafb;
-  --border-color: #e5e7eb;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+
+  --color-primary: #4f46e5;
+  --color-primary-dark: #4338ca;
+  --color-secondary: #ec4899;
+
+  --bg-gradient-start: #f8fafc;
+  --bg-gradient-end: #eef2ff;
 }
 
-.dark {
-  --primary-color: #6366f1;
-  --secondary-color: #a78bfa;
-  --accent-color: #c084fc;
-  --text-color: #f9fafb;
-  --bg-color: #111827;
-  --card-color: #1f2937;
-  --border-color: #374151;
-}
-
-/* Ensure text is visible in dark mode */
-.dark .text-gray-600,
-.dark .text-gray-700,
-.dark .text-gray-800,
-.dark .text-gray-900 {
-  color: #e5e7eb !important;
-}
-
-/* Ensure backgrounds are properly dark */
-.dark .bg-white,
-.dark .bg-gray-50,
-.dark .bg-gray-100 {
-  background-color: #1f2937 !important;
-}
-
-body {
-  font-family: 'Nunito', sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  transition: all 0.3s ease;
-}
-
-h1, h2, h3, h4, h5 {
-  font-family: 'Playfair Display', serif;
-}
-
-.card {
-  background-color: var(--card-color);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.btn-secondary {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-.btn-accent {
-  background-color: var(--accent-color);
-  color: white;
-}
-
-.pulse-animation {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-      transform: scale(1);
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  50% {
-      transform: scale(1.05);
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif);
   }
-  100% {
-      transform: scale(1);
+
+  body {
+    @apply bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-slate-900 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 dark:text-slate-50 min-h-screen;
   }
 }
 
-.tab-active {
-  border-bottom: 3px solid var(--primary-color);
-  color: var(--primary-color);
-}
-
-.shimmer {
-  background: linear-gradient(90deg, var(--card-color) 0%, rgba(255,255,255,0.15) 50%, var(--card-color) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-      background-position: -200% 0;
+@layer components {
+  .glass-panel {
+    @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-white/20 dark:border-slate-700/30 shadow-xl;
   }
-  100% {
-      background-position: 200% 0;
+
+  .btn-primary {
+    @apply px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-medium transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-95;
+  }
+
+  .input-premium {
+    @apply w-full px-6 py-4 bg-white dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl shadow-sm transition-all duration-300 outline-none text-lg placeholder:text-slate-400;
   }
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-      position: fixed;
-      z-index: 40;
-      transform: translateX(-100%);
-      transition: transform 0.3s ease-in-out;
-  }
-  
-  .sidebar.open {
-      transform: translateX(0);
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors;
 }

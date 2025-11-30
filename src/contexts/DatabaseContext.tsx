@@ -13,6 +13,11 @@ export interface WordData {
   synonyms: string[];
   antonyms: string[];
   etymology: string;
+  aiInsights?: {
+    simpleExplanation: string;
+    usageTips: string;
+    funFact: string;
+  };
   timestamp: string;
 }
 
@@ -79,38 +84,38 @@ export const DatabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             if (!db.objectStoreNames.contains('words')) {
               db.createObjectStore('words', { keyPath: 'word' });
             }
-            
+
             // Favorites store
             if (!db.objectStoreNames.contains('favorites')) {
               db.createObjectStore('favorites', { keyPath: 'word' });
             }
-            
+
             // History store
             if (!db.objectStoreNames.contains('history')) {
               const historyStore = db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
               historyStore.createIndex('word', 'word', { unique: false });
               historyStore.createIndex('timestamp', 'timestamp', { unique: false });
             }
-            
+
             // User preferences store
             if (!db.objectStoreNames.contains('preferences')) {
               db.createObjectStore('preferences', { keyPath: 'id' });
             }
-            
+
             // Offline words store
             if (!db.objectStoreNames.contains('offline')) {
               db.createObjectStore('offline', { keyPath: 'word' });
             }
           },
         });
-        
+
         setDb(database);
         setIsInitialized(true);
-        
+
         // Set default preferences if not already set
         const preferencesStore = database.transaction('preferences', 'readonly').objectStore('preferences');
         const userPreferences = await preferencesStore.get('userPreferences');
-        
+
         if (!userPreferences) {
           const defaultPreferences = {
             id: 'userPreferences',
@@ -119,7 +124,7 @@ export const DatabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             notifications: true,
             lastVisit: new Date().toISOString()
           };
-          
+
           await database.put('preferences', defaultPreferences);
         } else {
           // Update last visit
@@ -127,7 +132,7 @@ export const DatabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             ...userPreferences,
             lastVisit: new Date().toISOString()
           };
-          
+
           await database.put('preferences', updatedPreferences);
         }
       } catch (error) {
@@ -178,14 +183,14 @@ export const DatabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (!db) return;
     await db.clear('history');
   };
-  
+
   const removeWordFromHistory = async (word: string): Promise<void> => {
     if (!db) return;
     const tx = db.transaction('history', 'readwrite');
     const store = tx.objectStore('history');
     const wordIndex = store.index('word');
     let cursor = await wordIndex.openCursor(word);
-    
+
     while (cursor) {
       await cursor.delete();
       cursor = await cursor.continue();
@@ -295,10 +300,10 @@ export const DatabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
 export const useDatabase = (): DatabaseContextType => {
   const context = useContext(DatabaseContext);
-  
+
   if (context === undefined) {
     throw new Error('useDatabase must be used within a DatabaseProvider');
   }
-  
+
   return context;
 };

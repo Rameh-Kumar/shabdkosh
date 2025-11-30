@@ -1,28 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Volume2, Heart, BookOpen, List, Sparkles, Link2, Download } from 'lucide-react';
+import { Volume2, Heart, BookOpen, Sparkles, Link2, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useWord } from '../contexts/WordContext';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useNotification } from '../contexts/NotificationContext';
 import type { DefinitionGroup, MeaningDetail } from '../services/geminiService';
+import SearchBar from '../components/search/SearchBar';
 
 const sectionVariants = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.6, type: 'spring', stiffness: 60 }
+    transition: { delay: i * 0.1, duration: 0.5, type: 'spring', stiffness: 50 }
   })
 };
 
 const DefinitionPage: React.FC = () => {
   const { word } = useParams<{ word: string }>();
   const { initializeWord, wordData, isLoading, error, searchWord } = useWord();
-  const { isWordFavorited, addToFavorites, removeFromFavorites, saveForOffline } = useDatabase();
+  const { isWordFavorited, addToFavorites, removeFromFavorites } = useDatabase();
   const { showNotification } = useNotification();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
 
   useEffect(() => {
     if (word) {
@@ -49,33 +51,89 @@ const DefinitionPage: React.FC = () => {
     setIsFavorited(!isFavorited);
   };
 
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(id);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const playAudio = async () => {
+    if (isPlayingAudio || !wordData) return;
+    setIsPlayingAudio(true);
+
+    const play = (url: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        const audio = new Audio(url);
+        audio.onended = () => resolve();
+        audio.onerror = () => reject();
+        audio.play().catch(reject);
+      });
+    };
+
+    try {
+      // 1. Try provided audio
+      if (wordData.pronunciation?.audio) {
+        await play(wordData.pronunciation.audio);
+        setIsPlayingAudio(false);
+        return;
+      }
+
+      // 2. Try Dictionary API fallback
+      try {
+        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${wordData.word}`);
+        if (res.ok) {
+          const data = await res.json();
+          const audioUrl = data[0]?.phonetics?.find((p: any) => p.audio && p.audio !== '')?.audio;
+          if (audioUrl) {
+            await play(audioUrl);
+            setIsPlayingAudio(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Dictionary API fallback failed', e);
+      }
+
+      // 3. Final Fallback: Web Speech API
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(wordData.word);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9; // Slightly slower for clarity
+        utterance.onend = () => setIsPlayingAudio(false);
+        utterance.onerror = () => {
+          setIsPlayingAudio(false);
+          showNotification('Audio unavailable', 'error');
+        };
+        window.speechSynthesis.speak(utterance);
+      } else {
+        throw new Error('No audio source available');
+      }
+
+    } catch (e) {
+      setIsPlayingAudio(false);
+      showNotification('Audio unavailable', 'error');
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="animate-pulse max-w-4xl mx-auto p-4">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-6"></div>
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-6"></div>
+      <div className="max-w-4xl mx-auto p-4 space-y-8 animate-pulse">
+        <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl w-full"></div>
+        <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-3xl w-full"></div>
+        <div className="h-40 bg-slate-200 dark:bg-slate-700 rounded-3xl w-full"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-red-200 dark:border-red-900 text-center my-8">
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-full">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-red-600 dark:text-red-400">Error Loading Definition</h2>
-          <p className="text-gray-700 dark:text-gray-300 text-lg">{error}</p>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">Please try searching for another word or check your connection.</p>
-          <button 
+      <div className="max-w-3xl mx-auto p-8 text-center">
+        <div className="glass-panel p-8 rounded-3xl border-red-100 dark:border-red-900/30">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">Definition Not Found</h2>
+          <p className="text-slate-600 dark:text-slate-300 mb-6">{error}</p>
+          <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+            className="btn-primary bg-red-500 hover:bg-red-600 shadow-red-500/30"
           >
             Try Again
           </button>
@@ -86,15 +144,13 @@ const DefinitionPage: React.FC = () => {
 
   if (!wordData) return null;
 
-  // Ensure definitions are typed and normalized
+  // Normalization logic
   let definitionGroups: DefinitionGroup[] = [];
   if (Array.isArray(wordData.definitions)) {
     if (wordData.definitions.length > 0) {
       if (typeof wordData.definitions[0] === 'object' && wordData.definitions[0] !== null && 'meanings' in wordData.definitions[0]) {
-        // Already grouped
         definitionGroups = wordData.definitions as DefinitionGroup[];
       } else {
-        // Flat array, group by partOfSpeech
         const flatDefs = wordData.definitions as Array<{ partOfSpeech: string; meaning: string; example?: string }>;
         const groupMap: Record<string, MeaningDetail[]> = {};
         flatDefs.forEach(def => {
@@ -108,342 +164,267 @@ const DefinitionPage: React.FC = () => {
       }
     }
   }
-  
-  // Add fallback if no definitions are found
+
   if (definitionGroups.length === 0) {
     definitionGroups = [{
       partOfSpeech: 'unknown',
-      meanings: [{ meaning: 'No definition found for this word. Please try another word or check your spelling.' }]
+      meanings: [{ meaning: 'No definition found for this word.' }]
     }];
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-2 sm:p-4 space-y-8 sm:space-y-10 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 min-h-[90vh] rounded-xl shadow-xl dark:text-white">
-      {/* Word Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -30 }}
+    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      {/* Top Search Bar */}
+      <div className="mb-8">
+        <SearchBar />
+      </div>
+
+      {/* Word Header Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, type: 'spring', stiffness: 60 }}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-8 rounded-2xl shadow-2xl mb-2 sm:mb-4"
+        className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 md:p-12 text-white shadow-2xl"
       >
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div className="w-full">
-            <h1 className="text-3xl sm:text-5xl font-extrabold mb-2 flex items-center gap-2 sm:gap-3 font-serif tracking-tight drop-shadow-lg break-words">
-              <BookOpen className="inline-block" size={32} />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="text-5xl md:text-7xl font-serif font-bold tracking-tight mb-4 drop-shadow-md">
               {wordData.word}
             </h1>
-            <div className="flex items-center gap-2 sm:gap-4 mt-2 flex-wrap">
-              <span className="text-lg sm:text-2xl font-light tracking-wide font-mono bg-white/10 px-2 sm:px-3 py-1 rounded-lg shadow-inner">
-                {wordData.pronunciation?.text || ""}
+            <div className="flex items-center gap-4">
+              <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-xl font-mono text-lg tracking-wide border border-white/10">
+                {wordData.pronunciation?.text || "/.../"}
               </span>
-              <button 
-                onClick={async () => {
-                  if (isPlayingAudio) return; // Prevent multiple clicks
-                  
-                  // Check if we already have audio URL
-                  if (wordData.pronunciation?.audio) {
-                    try {
-                      setIsPlayingAudio(true);
-                      const audio = new Audio(wordData.pronunciation.audio);
-                      
-                      // Add event listener for when audio ends
-                      audio.addEventListener('ended', () => {
-                        setIsPlayingAudio(false);
-                      });
-                      
-                      // Add error event listener
-                      audio.addEventListener('error', () => {
-                        console.error('Audio failed to load');
-                        setIsPlayingAudio(false);
-                        tryFallbackAudio();
-                      });
-                      
-                      await audio.play();
-                      // Audio playing successfully
-                    } catch (err) {
-                      console.error('Error playing audio:', err);
-                      setIsPlayingAudio(false);
-                      tryFallbackAudio();
-                    }
-                  } else {
-                    tryFallbackAudio();
-                  }
-                  
-                  // Fallback function to try fetching audio from Free Dictionary API directly
-                  async function tryFallbackAudio() {
-                    try {
-                      if (!wordData) return; // Add null check for wordData
-                      
-                      setIsPlayingAudio(true);
-                      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(wordData.word)}`);
-                      
-                      if (!response.ok) {
-                        throw new Error('Could not fetch pronunciation');
-                      }
-                      
-                      const data = await response.json();
-                      
-                      if (Array.isArray(data) && data.length > 0) {
-                        const phonetics = data[0].phonetics || [];
-                        const phoneticWithAudio = phonetics.find((p: any) => p.audio && p.audio.trim() !== '');
-                        
-                        if (phoneticWithAudio && phoneticWithAudio.audio) {
-                          const audio = new Audio(phoneticWithAudio.audio);
-                          
-                          audio.addEventListener('ended', () => {
-                            setIsPlayingAudio(false);
-                          });
-                          
-                          await audio.play();
-                          return; // Success
-                        }
-                      }
-                      
-                      throw new Error('No audio available');
-                    } catch (err) {
-                      console.error('Fallback audio failed:', err);
-                      showNotification('Audio pronunciation not available for this word', 'info');
-                      setIsPlayingAudio(false);
-                    }
-                  }
-                }}
-                className={`p-2 rounded-full transition-all focus:ring-2 focus:ring-white ${isPlayingAudio ? 'bg-white/30 animate-pulse' : 'hover:bg-white/20'}`}
-                aria-label="Play pronunciation"
-                title="Play pronunciation"
-                disabled={isPlayingAudio}
-              >
-                <Volume2 size={22} />
-              </button>
-              <button 
-                onClick={() => {
-                  // Save word for offline use
-                  if (wordData) {
-                    saveForOffline(wordData);
-                    showNotification(`"${wordData.word}" saved for offline use`, 'success');
-                  }
-                }}
-                className="p-2 hover:bg-white/20 rounded-full transition-colors focus:ring-2 focus:ring-white"
-                aria-label="Download for offline use"
-                title="Save for offline use"
-              >
-                <Download size={22} />
-              </button>
-              <button 
-                onClick={handleFavoriteClick}
-                className={`p-2 rounded-full transition-all focus:ring-2 focus:ring-white ${isFavorited ? 'bg-pink-500 text-white' : 'hover:bg-white/20'}`}
-                aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-                title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                <Heart fill={isFavorited ? "currentColor" : "none"} size={22} />
-              </button>
             </div>
           </div>
-        </div>
-      </motion.header>
 
-      {/* Definitions Section */}
+          <div className="flex items-center gap-3">
+            <ActionButton
+              onClick={playAudio}
+              icon={<Volume2 size={24} className={isPlayingAudio ? "animate-pulse" : ""} />}
+              label="Pronounce"
+              active={isPlayingAudio}
+            />
+            <ActionButton
+              onClick={handleFavoriteClick}
+              icon={<Heart size={24} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "text-pink-400" : ""} />}
+              label="Favorite"
+              active={isFavorited}
+            />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* AI Insights Section */}
+      {wordData.aiInsights && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glass-panel rounded-3xl p-8 border-indigo-100/50 dark:border-indigo-500/20 bg-gradient-to-br from-white/40 to-indigo-50/40 dark:from-slate-800/40 dark:to-indigo-900/20"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+              <Sparkles size={20} />
+            </div>
+            <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">AI Insights</h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-500 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                Simple Explanation
+              </h3>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-white/50 dark:bg-black/20 p-4 rounded-2xl">
+                {wordData.aiInsights.simpleExplanation}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Pro Tips
+              </h3>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-white/50 dark:bg-black/20 p-4 rounded-2xl">
+                {wordData.aiInsights.usageTips}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-amber-500 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Fun Fact
+              </h3>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-white/50 dark:bg-black/20 p-4 rounded-2xl">
+                {wordData.aiInsights.funFact}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Definitions */}
       <motion.section
         custom={0}
         initial="hidden"
         animate="visible"
         variants={sectionVariants}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-blue-100 dark:border-blue-900"
+        className="glass-panel rounded-3xl p-8"
       >
-        <div className="flex items-center gap-2 p-4 sm:p-5 border-b border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/30 rounded-t-2xl">
-          <List className="text-blue-500" size={22} />
-          <h2 className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-200 font-serif tracking-tight">Definitions</h2>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
+            <BookOpen size={24} />
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-slate-800 dark:text-slate-100">Definitions</h2>
         </div>
-        <div className="p-4 sm:p-6 space-y-8">
-          {definitionGroups.length > 0 ? (
-            definitionGroups.map((defGroup: DefinitionGroup, groupIdx: number) => (
-              <div key={groupIdx} className="mb-6">
-                {defGroup.partOfSpeech !== 'unknown' && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-200 dark:bg-blue-800 text-blue-900 dark:text-blue-100 uppercase tracking-wider">
-                      {defGroup.partOfSpeech}
-                    </span>
-                  </div>
-                )}
-                <ol className="space-y-6 ml-2">
-                  {defGroup.meanings && defGroup.meanings.map((meaning: MeaningDetail, idx: number) => (
-                    <li key={idx} className="relative bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 shadow-sm border-l-4 border-blue-400">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-blue-900 dark:text-blue-100 text-lg">{idx + 1}.</span>
-                        <span className="font-serif text-base sm:text-lg text-blue-900 dark:text-blue-100">{meaning.meaning}</span>
-                        <button
-                          className="ml-2 p-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
-                          onClick={() => navigator.clipboard.writeText(meaning.meaning)}
-                          title="Copy definition"
-                        >
-                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
-                        </button>
-                      </div>
-                      {meaning.example && (
-                        <div className="text-blue-700 dark:text-blue-300 text-xs sm:text-sm mt-1 italic flex items-center gap-1">
-                          <Sparkles size={14} className="inline-block" /> "{meaning.example}"
-                          <button
-                            className="ml-1 p-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
-                            onClick={() => navigator.clipboard.writeText(meaning.example!)}
-                            title="Copy example"
-                          >
-                            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
-                          </button>
-                        </div>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                        {meaning.usage && (
-                          <span className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <List size={12} /> {meaning.usage}
-                          </span>
-                        )}
-                        {meaning.register && (
-                          <span className="bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <BookOpen size={12} /> {meaning.register}
-                          </span>
-                        )}
-                      </div>
-                      {(meaning.synonyms && meaning.synonyms.length > 0) && (
-                        <div className="mt-2 flex flex-wrap gap-2 items-center">
-                          <span className="text-purple-700 dark:text-purple-200 font-semibold flex items-center gap-1"><Link2 size={14} />Synonyms:</span>
-                          {meaning.synonyms.map((syn: string, sidx: number) => (
-                            <span key={sidx} className="bg-purple-100 dark:bg-purple-900 rounded-full px-2 py-0.5 text-purple-800 dark:text-purple-100 text-xs font-medium">{syn}</span>
-                          ))}
-                        </div>
-                      )}
-                      {(meaning.antonyms && meaning.antonyms.length > 0) && (
-                        <div className="mt-1 flex flex-wrap gap-2 items-center">
-                          <span className="text-red-700 dark:text-red-200 font-semibold flex items-center gap-1"><Link2 size={14} />Antonyms:</span>
-                          {meaning.antonyms.map((ant: string, aidx: number) => (
-                            <span key={aidx} className="bg-red-100 dark:bg-red-900 rounded-full px-2 py-0.5 text-red-800 dark:text-red-100 text-xs font-medium">{ant}</span>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))
-          ) : (
-            <div className="p-6 text-center bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-blue-800 dark:text-blue-200 text-lg font-serif">No definitions found for this word.</p>
-            </div>
-          )}
-        </div>
-      </motion.section>
 
-      {/* Examples Section */}
-      <motion.section
-        custom={1}
-        initial="hidden"
-        animate="visible"
-        variants={sectionVariants}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-green-100 dark:border-green-900"
-      >
-        <div className="flex items-center gap-2 p-4 sm:p-5 border-b border-green-100 dark:border-green-900 bg-green-50 dark:bg-green-900/30 rounded-t-2xl">
-          <Sparkles className="text-green-500" size={22} />
-          <h2 className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-200 font-serif tracking-tight">Examples</h2>
-        </div>
-        <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-          {wordData.examples.map((example, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.08, duration: 0.5 }}
-              className="p-3 sm:p-4 bg-green-50/40 dark:bg-green-900/20 rounded-lg shadow-sm border-l-4 border-green-400"
-            >
-              <p className="italic text-base sm:text-lg text-green-900 dark:text-green-100 font-serif">"{example}"</p>
-            </motion.div>
+        <div className="space-y-12">
+          {definitionGroups.map((group, idx) => (
+            <div key={idx} className="relative">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-lg text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  {group.partOfSpeech}
+                </span>
+                <div className="h-px flex-1 bg-indigo-50 dark:bg-indigo-900/30"></div>
+              </div>
+
+              <div className="space-y-8">
+                {group.meanings.map((meaning, mIdx) => (
+                  <div key={mIdx} className="group relative pl-6 border-l-2 border-indigo-100 dark:border-indigo-900/50 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors py-1">
+                    <div className="flex items-start gap-4">
+                      <span className="text-indigo-300 dark:text-indigo-700 font-serif font-bold text-lg mt-0.5 select-none">{mIdx + 1}.</span>
+                      <div className="flex-1 space-y-3">
+                        <div className="relative">
+                          <p className="text-xl text-slate-800 dark:text-slate-100 leading-relaxed font-serif">
+                            {meaning.meaning}
+                            <button
+                              onClick={() => handleCopy(meaning.meaning, `${idx}-${mIdx}`)}
+                              className="ml-3 inline-flex opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-indigo-500 align-middle"
+                              title="Copy definition"
+                            >
+                              {copiedIndex === `${idx}-${mIdx}` ? <Check size={18} /> : <Copy size={18} />}
+                            </button>
+                          </p>
+
+                          {/* Metadata Badges */}
+                          {(meaning.usage || meaning.register) && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {meaning.usage && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                                  {meaning.usage}
+                                </span>
+                              )}
+                              {meaning.register && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50">
+                                  {meaning.register}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {meaning.example && (
+                          <div className="pl-4 border-l-2 border-slate-200 dark:border-slate-700/50">
+                            <p className="text-slate-600 dark:text-slate-400 italic font-medium">"{meaning.example}"</p>
+                          </div>
+                        )}
+
+                        {(meaning.synonyms?.length > 0 || meaning.antonyms?.length > 0) && (
+                          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm pt-1">
+                            {meaning.synonyms?.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-indigo-500 font-bold text-xs uppercase tracking-wide">Synonyms</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {meaning.synonyms.slice(0, 4).map(syn => (
+                                    <span
+                                      key={syn}
+                                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800/50 rounded-md text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer transition-colors text-xs font-medium"
+                                      onClick={() => searchWord(syn)}
+                                    >
+                                      {syn}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </motion.section>
 
-      {/* Synonyms Section */}
-      {wordData.synonyms.length > 0 && (
-        <motion.section
-          custom={2}
-          initial="hidden"
-          animate="visible"
-          variants={sectionVariants}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-purple-100 dark:border-purple-900"
-        >
-          <div className="flex items-center gap-2 p-4 sm:p-5 border-b border-purple-100 dark:border-purple-900 bg-purple-50 dark:bg-purple-900/30 rounded-t-2xl">
-            <Link2 className="text-purple-500" size={22} />
-            <h2 className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-200 font-serif tracking-tight">Synonyms</h2>
-          </div>
-          <div className="p-4 sm:p-6 flex flex-wrap gap-2 sm:gap-3">
-            {wordData.synonyms.map((syn, idx) => (
-              <motion.span
-                key={idx}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.05, duration: 0.3 }}
-                className="px-3 sm:px-4 py-1 sm:py-2 bg-purple-100 dark:bg-purple-900 rounded-full text-purple-800 dark:text-purple-100 text-sm sm:text-base font-semibold shadow hover:scale-105 transition-transform cursor-pointer select-text"
-                onClick={() => searchWord(syn)}
-                title={`View definition for '${syn}'`}
-                role="button"
-                tabIndex={0}
-              >
-                {syn}
-              </motion.span>
-            ))}
-          </div>
-        </motion.section>
-      )}
+      {/* Examples & Etymology Grid */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {wordData.examples.length > 0 && (
+          <motion.section
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            variants={sectionVariants}
+            className="glass-panel rounded-3xl p-8"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                <Sparkles size={20} />
+              </div>
+              <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">Examples</h2>
+            </div>
+            <ul className="space-y-4">
+              {wordData.examples.slice(0, 4).map((ex, i) => (
+                <li key={i} className="flex gap-3 text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                  <span className="text-emerald-400 font-serif">"</span>
+                  {ex}
+                  <span className="text-emerald-400 font-serif">"</span>
+                </li>
+              ))}
+            </ul>
+          </motion.section>
+        )}
 
-      {/* Antonyms Section */}
-      {wordData.antonyms.length > 0 && (
-        <motion.section
-          custom={3}
-          initial="hidden"
-          animate="visible"
-          variants={sectionVariants}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-red-100 dark:border-red-900"
-        >
-          <div className="flex items-center gap-2 p-4 sm:p-5 border-b border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-900/30 rounded-t-2xl">
-            <Link2 className="text-red-500" size={22} />
-            <h2 className="text-xl sm:text-2xl font-bold text-red-700 dark:text-red-200 font-serif tracking-tight">Antonyms</h2>
-          </div>
-          <div className="p-4 sm:p-6 flex flex-wrap gap-2 sm:gap-3">
-            {wordData.antonyms.map((ant, idx) => (
-              <motion.span
-                key={idx}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.05, duration: 0.3 }}
-                className="px-3 sm:px-4 py-1 sm:py-2 bg-red-100 dark:bg-red-900 rounded-full text-red-800 dark:text-red-100 text-sm sm:text-base font-semibold shadow hover:scale-105 transition-transform cursor-pointer select-text"
-                onClick={() => searchWord(ant)}
-                title={`View definition for '${ant}'`}
-                role="button"
-                tabIndex={0}
-              >
-                {ant}
-              </motion.span>
-            ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* Etymology Section */}
-      <motion.section
-        custom={4}
-        initial="hidden"
-        animate="visible"
-        variants={sectionVariants}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-amber-100 dark:border-amber-900"
-      >
-        <div className="flex items-center gap-2 p-4 sm:p-5 border-b border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/30 rounded-t-2xl">
-          <Sparkles className="text-amber-500" size={22} />
-          <h2 className="text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-300 font-serif tracking-tight">Etymology</h2>
-        </div>
-        <div className="p-4 sm:p-6">
-          <p className="leading-relaxed text-base sm:text-lg font-serif text-amber-900 dark:text-amber-100 animate-fade-in">
-            {wordData.etymology}
-          </p>
-        </div>
-      </motion.section>
+        {wordData.etymology && (
+          <motion.section
+            custom={2}
+            initial="hidden"
+            animate="visible"
+            variants={sectionVariants}
+            className="glass-panel rounded-3xl p-8"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
+                <Link2 size={20} />
+              </div>
+              <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">Etymology</h2>
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+              {wordData.etymology}
+            </p>
+          </motion.section>
+        )}
+      </div>
     </div>
   );
 };
+
+const ActionButton = ({ onClick, icon, label, active = false }: { onClick: () => void, icon: React.ReactNode, label: string, active?: boolean }) => (
+  <button
+    onClick={onClick}
+    className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${active
+      ? 'bg-white text-indigo-600 shadow-lg scale-105'
+      : 'bg-white/10 text-white hover:bg-white/20'
+      }`}
+    title={label}
+  >
+    {icon}
+  </button>
+);
 
 export default DefinitionPage;

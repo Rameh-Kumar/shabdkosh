@@ -1,168 +1,86 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, Sun, Moon, ChevronDown, User } from 'lucide-react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Sun, Moon, Book, Clock, Heart } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import SearchBar from '../search/SearchBar';
 
 interface HeaderProps {
-  toggleSidebar: () => void;
-  onShowLogin: () => void;
-  onShowRegister: () => void;
+  // No props needed anymore
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, onShowLogin, onShowRegister }) => {
+const Header: React.FC<HeaderProps> = () => {
   const { theme, toggleTheme } = useTheme();
-  const { user, isAuthenticated, logout } = useAuth();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false);
-      }
-    };
+  const location = useLocation();
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const toggleUserMenu = () => {
-    setIsUserMenuOpen(!isUserMenuOpen);
-  };
-
-  const handleLogout = () => {
-    logout();
-    setIsUserMenuOpen(false);
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md">
+    <header className="sticky top-0 z-50 glass-panel border-b-0 rounded-b-2xl mx-2 mt-2">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <button 
-            onClick={toggleSidebar}
-            className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
-            aria-label="Toggle sidebar"
-          >
-            <Menu size={20} />
-          </button>
-          <Link to="/" className="flex items-center">
-            <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
-              <circle cx="32" cy="32" r="30" fill="url(#lexiai-gradient)" />
-              <path d="M22 44 Q32 24 42 44" stroke="#fff" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="lexiai-gradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#6366F1" />
-                  <stop offset="1" stopColor="#4F46E5" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <h1 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Shabdkosh</h1>
-          </Link>
-        </div>
-        
-        <div className="hidden md:block flex-grow mx-4 max-w-2xl">
-          <SearchBar />
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <div id="online-status" className="hidden">
-            <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">Offline</span>
+        <Link to="/" className="flex items-center group">
+          <div className="relative w-10 h-10 mr-3 transition-transform duration-300 group-hover:scale-110">
+            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl rotate-3 opacity-80 group-hover:rotate-6 transition-transform"></div>
+            <div className="absolute inset-0 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-md">
+              <span className="text-xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">S</span>
+            </div>
           </div>
-          
-          <button 
+          <h1 className="text-2xl font-serif font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+            Shabdkosh<span className="text-indigo-500">AI</span>
+          </h1>
+        </Link>
+
+        <nav className="hidden md:flex items-center space-x-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-full backdrop-blur-sm">
+          <NavLink to="/" icon={<Book size={18} />} label="Dictionary" active={isActive('/')} />
+          <NavLink to="/history" icon={<Clock size={18} />} label="History" active={isActive('/history')} />
+          <NavLink to="/favorites" icon={<Heart size={18} />} label="Favorites" active={isActive('/favorites')} />
+        </nav>
+
+        <div className="flex items-center space-x-3">
+          <button
             onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none transition-colors duration-200 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none transition-all duration-300 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-sm hover:shadow-md"
+            aria-label="Toggle theme"
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          
-          <div className="relative" ref={userMenuRef}>
-            <button 
-              onClick={toggleUserMenu}
-              className="flex items-center space-x-1 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
-              aria-label="User menu"
-              aria-expanded={isUserMenuOpen}
-            >
-              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                {isAuthenticated ? (
-                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-                    {user?.name.charAt(0).toUpperCase()}
-                  </span>
-                ) : (
-                  <User size={16} className="text-indigo-600 dark:text-indigo-400" />
-                )}
-              </div>
-              <span className="hidden md:block">
-                {isAuthenticated ? user?.name : 'Guest'}
-              </span>
-              <ChevronDown size={16} />
-            </button>
-            
-            {isUserMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20">
-                {isAuthenticated ? (
-                  <>
-                    <Link 
-                      to="/profile" 
-                      className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      Profile
-                    </Link>
-                    <Link 
-                      to="/settings" 
-                      className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      Settings
-                    </Link>
-                    <button 
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      Log Out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button 
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        onShowLogin();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      Log In
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        onShowRegister();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      Register
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
-      
-      <div className="md:hidden px-4 pb-3">
-        <SearchBar />
+
+      {/* Mobile Navigation Bottom Bar */}
+      <div className="md:hidden fixed bottom-4 left-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/30 p-2 flex justify-around items-center z-50">
+        <MobileNavLink to="/" icon={<Book size={24} />} label="Dictionary" active={isActive('/')} />
+        <MobileNavLink to="/history" icon={<Clock size={24} />} label="History" active={isActive('/history')} />
+        <MobileNavLink to="/favorites" icon={<Heart size={24} />} label="Favorites" active={isActive('/favorites')} />
       </div>
     </header>
   );
 };
+
+const NavLink = ({ to, icon, label, active }: { to: string, icon: React.ReactNode, label: string, active: boolean }) => (
+  <Link
+    to={to}
+    className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 ${active
+        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm font-medium'
+        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+      }`}
+  >
+    {icon}
+    <span>{label}</span>
+  </Link>
+);
+
+const MobileNavLink = ({ to, icon, label, active }: { to: string, icon: React.ReactNode, label: string, active: boolean }) => (
+  <Link
+    to={to}
+    className={`flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${active
+        ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
+        : 'text-slate-500 dark:text-slate-400'
+      }`}
+  >
+    {icon}
+    <span className="text-[10px] font-medium mt-1">{label}</span>
+  </Link>
+);
 
 export default Header;

@@ -27,11 +27,11 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
   const [wordOfTheDay, setWordOfTheDay] = useState<WordData | null>(null);
   const [trendingWords, setTrendingWords] = useState<WordData[]>([]);
-  
+
   const navigate = useNavigate();
   const { getWord, saveWord, addToHistory, isWordOffline } = useDatabase();
   const { showNotification } = useNotification();
-  
+
   // Test API key on component mount
   useEffect(() => {
     const checkApiKey = async () => {
@@ -42,27 +42,27 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // showNotification('Dictionary service configuration issue detected', 'error');
       }
     };
-    
+
     checkApiKey();
   }, [showNotification]);
 
   // Function to fetch word data without navigation
   const initializeWord = async (word: string): Promise<void> => {
     if (!word.trim()) return;
-    
+
     const searchTerm = word.trim().toLowerCase();
     setCurrentWord(searchTerm);
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Check if API key is valid before proceeding
       if (apiKeyValid === false) {
         throw new Error('Dictionary service is not properly configured. Please check your API key.');
       }
-      
+
       const isOffline = await isWordOffline(searchTerm);
-      
+
       if (isOffline) {
         const offlineData = await getWord(searchTerm);
         if (offlineData) {
@@ -72,19 +72,19 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
       }
-      
+
       console.log(`Initializing word: ${searchTerm}`);
       const data = await wordService.fetchWordDefinition(searchTerm);
-      
+
       // Check if the response contains an error message
-      if (data.definitions.length === 1 && 
-          data.definitions[0].partOfSpeech === 'error') {
+      if (data.definitions.length === 1 &&
+        data.definitions[0].partOfSpeech === 'error') {
         throw new Error(data.definitions[0].meanings[0].meaning);
       }
-      
+
       // Transform flat definitions into grouped format
       let groupedDefinitions: DefinitionGroup[] = [];
-      
+
       if (Array.isArray(data.definitions)) {
         // Check if definitions are already in the grouped format
         if (data.definitions.length > 0 && 'meanings' in data.definitions[0]) {
@@ -93,7 +93,7 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
           // Convert flat definitions to grouped format
           const definitionsByPOS: Record<string, MeaningDetail[]> = {};
-          
+
           data.definitions.forEach((def) => {
             if ('meaning' in def && typeof def.meaning === 'string') {
               const flatDef = def as { partOfSpeech: string; meaning: string; example?: string };
@@ -106,10 +106,11 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               });
             }
           });
-          
-          Object.entries(definitionsByPOS).forEach(([partOfSpeech, meanings]) => {
-            groupedDefinitions.push({ partOfSpeech, meanings });
-          });
+          // Convert definitionsByPOS object to an array of DefinitionGroup
+          groupedDefinitions = Object.entries(definitionsByPOS).map(([partOfSpeech, meanings]) => ({
+            partOfSpeech,
+            meanings,
+          }));
         }
       }
 
@@ -121,8 +122,8 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await saveWord(wordDataForContext);
       await addToHistory(searchTerm);
     } catch (err) {
-      setError('Failed to load definition. Please try again.');
-      showNotification('Failed to load definition. Please try again.', 'error');
+      setError(err instanceof Error ? err.message : 'Failed to load definition. Please try again.');
+      showNotification(err instanceof Error ? err.message : 'Failed to load definition. Please try again.', 'error');
       console.error('Error fetching word definition:', err);
     } finally {
       setIsLoading(false);
@@ -133,16 +134,16 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const searchWord = async (word: string): Promise<void> => {
     if (!word.trim()) return;
     const searchTerm = word.trim().toLowerCase();
-    
+
     // Track this search for trending words
     wordService.trackWordSearch(searchTerm);
-    
+
     navigate(`/word/${searchTerm}`);
   };
 
   const getWordSuggestions = async (query: string): Promise<string[]> => {
     if (!query || query.length < 2) return [];
-    
+
     try {
       return await wordService.fetchWordSuggestions(query);
     } catch (err) {
@@ -158,7 +159,7 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Fetch word of the day
         const wotd = await wordService.fetchWordOfTheDay();
         setWordOfTheDay(wotd);
-        
+
         // Fetch trending words
         const trending = await wordService.fetchTrendingWords(3);
         setTrendingWords(trending);
@@ -166,14 +167,14 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('Error loading featured words:', err);
       }
     };
-    
+
     loadFeaturedWords();
-    
+
     // Refresh featured words every 24 hours
     const refreshInterval = setInterval(() => {
       loadFeaturedWords();
     }, 24 * 60 * 60 * 1000); // 24 hours
-    
+
     return () => clearInterval(refreshInterval);
   }, []);
 
@@ -182,7 +183,7 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (wordOfTheDay) {
       return wordOfTheDay;
     }
-    
+
     // Fallback data while loading
     return {
       word: 'serendipity',
@@ -212,7 +213,7 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (trendingWords && trendingWords.length > 0) {
       return trendingWords;
     }
-    
+
     // Fallback data while loading
     return [
       {
@@ -220,7 +221,7 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         pronunciation: { text: '/ˈpærəˌdaɪm/' },
         definitions: [{
           partOfSpeech: 'noun',
-          meanings: [{ 
+          meanings: [{
             meaning: 'A typical example or pattern of something',
             example: 'This is a paradigm of excellence'
           }]
@@ -287,10 +288,10 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useWord = (): WordContextType => {
   const context = useContext(WordContext);
-  
+
   if (context === undefined) {
     throw new Error('useWord must be used within a WordProvider');
   }
-  
+
   return context;
 };

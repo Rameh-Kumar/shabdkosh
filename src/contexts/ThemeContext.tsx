@@ -16,57 +16,52 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [theme, setThemeState] = useState<Theme>(() => {
     // Check for saved theme in localStorage
     const savedTheme = localStorage.getItem('theme');
-    
+
     if (savedTheme === 'dark' || savedTheme === 'light') {
       return savedTheme as Theme;
     }
-    
+
     // If no saved theme, check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
+    // If user explicitly prefers light, give them light.
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
     }
-    
-    // Default to light if no preference detected
-    return 'light';
+
+    // Otherwise default to dark (this covers no preference or dark preference)
+    return 'dark';
   });
 
   // Apply theme to document and save to localStorage
   useEffect(() => {
     const root = window.document.documentElement;
-    
+
     // Remove both classes first to ensure clean state
     root.classList.remove('light', 'dark');
-    
+
     // Add the current theme class
     root.classList.add(theme);
-    
+
     // Update data attribute for components that might use it
     root.setAttribute('data-theme', theme);
-    
+
     // Save to localStorage
     localStorage.setItem('theme', theme);
-    
-    // Apply theme-specific body background
-    if (theme === 'dark') {
-      document.body.classList.add('bg-gray-900', 'text-white');
-      document.body.classList.remove('bg-white', 'text-gray-900');
-    } else {
-      document.body.classList.add('bg-white', 'text-gray-900');
-      document.body.classList.remove('bg-gray-900', 'text-white');
-    }
+
+    // Note: Body background and text colors are handled by index.css 
+    // using the 'dark' class on the html element.
   }, [theme]);
 
   // Listen for system preference changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       // Only update if user hasn't explicitly set a preference
       if (!localStorage.getItem('theme')) {
         setThemeState(e.matches ? 'dark' : 'light');
       }
     };
-    
+
     // Add event listener with newer API if available
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', handleChange);
@@ -102,10 +97,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
-  
+
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
-  
+
   return context;
 };

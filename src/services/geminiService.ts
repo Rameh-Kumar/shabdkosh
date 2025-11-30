@@ -1,3 +1,4 @@
+
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
@@ -12,7 +13,7 @@ export const testGeminiApiKey = async (): Promise<boolean> => {
       console.error('Gemini API key is missing');
       return false;
     }
-    
+
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
@@ -26,12 +27,12 @@ export const testGeminiApiKey = async (): Promise<boolean> => {
         }]
       })
     });
-    
+
     if (!response.ok) {
       console.error('Gemini API test failed with status:', response.status);
       return false;
     }
-    
+
     console.log('Gemini API connection test successful');
     return true;
   } catch (error) {
@@ -73,31 +74,41 @@ export interface ParseResult {
   synonyms: string[];
   antonyms: string[];
   etymology: string;
+  aiInsights?: {
+    simpleExplanation: string;
+    usageTips: string;
+    funFact: string;
+  };
 }
 
 export const getWordDefinition = async (word: string): Promise<string> => {
   const prompt = `
-You are a dictionary API. For the word "${word}", respond in this exact format:
+You are a world - class linguist and dictionary API.For the word "${word}", respond in this exact format:
+
+AI INSIGHTS
+Simple Explanation: [A simple, one - sentence explanation for a 5 - year - old]
+Usage Tips: [A practical tip on how to use this word correctly or a common mistake to avoid]
+Fun Fact: [An interesting trivia or historical fact about this word]
 
 DEFINITIONS
-• [noun] 1. First noun definition
+•[noun] 1. First noun definition
   - Example: "Example sentence for first noun definition."
-  - Usage: formal
-  - Register: standard
-  - Synonyms: synonym1, synonym2
-  - Antonyms: antonym1, antonym2
-• [noun] 2. Second noun definition
+    - Usage: formal
+      - Register: standard
+        - Synonyms: synonym1, synonym2
+          - Antonyms: antonym1, antonym2
+•[noun] 2. Second noun definition
   - Example: "Example sentence for second noun definition."
-  - Usage: informal
-  - Register: colloquial
-  - Synonyms: synonym3, synonym4
-  - Antonyms: antonym3, antonym4
-• [verb] 1. First verb definition
+    - Usage: informal
+      - Register: colloquial
+        - Synonyms: synonym3, synonym4
+          - Antonyms: antonym3, antonym4
+•[verb] 1. First verb definition
   - Example: "Example sentence for first verb definition."
-  - Usage: standard
-  - Register: formal
-  - Synonyms: synonym5, synonym6
-  - Antonyms: antonym5, antonym6
+    - Usage: standard
+      - Register: formal
+        - Synonyms: synonym5, synonym6
+          - Antonyms: antonym5, antonym6
 
 EXAMPLES
 • "Complete example sentence one."
@@ -114,11 +125,11 @@ Origin: Word origin
 Development: Historical development
 Current: Current usage
 
-Respond using exactly this format. Each definition must:
-1. Start with a bullet point (•)
+Respond using exactly this format.Each definition must:
+1. Start with a bullet point(•)
 2. Include part of speech in square brackets
 3. Include a numbered definition
-4. Include all subfields (Example, Usage, Register, Synonyms, Antonyms)
+4. Include all subfields(Example, Usage, Register, Synonyms, Antonyms)
 If any field is not available, write "None" for that field.
 Do not add any extra text or skip any sections.`;
 
@@ -127,8 +138,8 @@ Do not add any extra text or skip any sections.`;
       console.error('Gemini API key is missing. Please check your .env file and ensure VITE_GEMINI_API_KEY is set.');
       throw new Error('Gemini API key is not configured');
     }
-    
-    console.log(`Fetching definition for word: ${word}`);
+
+    console.log(`Fetching definition for word: ${word} `);
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -165,13 +176,13 @@ Do not add any extra text or skip any sections.`;
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Gemini API HTTP error:', response.status, errorData);
-      throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+      throw new Error(errorData.error?.message || `HTTP error! status: ${response.status} `);
     }
-    
+
     console.log('Received response from Gemini API');
 
     const data: GeminiResponse = await response.json();
-    
+
     if (data.error) {
       console.error('Gemini API error:', data.error);
       throw new Error(data.error.message || 'Failed to get definition from Gemini');
@@ -182,14 +193,16 @@ Do not add any extra text or skip any sections.`;
       console.error('Invalid Gemini API response format:', data);
       throw new Error('Invalid response format from Gemini API');
     }
-    
+
     console.log('Successfully parsed Gemini response');
 
-    // Verify that the response contains the required sections
-    const requiredSections = ['DEFINITIONS', 'EXAMPLES', 'SYNONYMS', 'ANTONYMS', 'ETYMOLOGY'];
+    // Verify that the response contains the critical sections
+    const requiredSections = ['DEFINITIONS'];
     const missingSection = requiredSections.find(section => !definition.includes(section));
     if (missingSection) {
-      throw new Error(`Invalid response format: Missing ${missingSection} section`);
+      console.warn(`Missing critical section: ${missingSection}`);
+      // We don't throw here anymore to allow partial responses, 
+      // but we log it. If DEFINITIONS is missing, the parser will handle it.
     }
 
     return definition;
@@ -206,7 +219,12 @@ export const parseGeminiResponse = (response: string): ParseResult => {
     examples: [],
     synonyms: [],
     antonyms: [],
-    etymology: ''
+    etymology: '',
+    aiInsights: {
+      simpleExplanation: '',
+      usageTips: '',
+      funFact: ''
+    }
   };
   let currentSection = '';
   let etymologyParts: string[] = [];
@@ -219,6 +237,10 @@ export const parseGeminiResponse = (response: string): ParseResult => {
     if (!trimmed) continue;
 
     // Handle section headers
+    if (/^AI INSIGHTS/i.test(trimmed)) {
+      currentSection = 'ai_insights';
+      continue;
+    }
     if (/^DEFINITIONS/i.test(trimmed)) {
       currentSection = 'definitions';
       continue;
@@ -257,20 +279,38 @@ export const parseGeminiResponse = (response: string): ParseResult => {
     }
 
     switch (currentSection) {
+      case 'ai_insights': {
+        if (trimmed.startsWith('Simple Explanation:')) {
+          result.aiInsights!.simpleExplanation = trimmed.replace('Simple Explanation:', '').trim();
+        } else if (trimmed.startsWith('Usage Tips:')) {
+          result.aiInsights!.usageTips = trimmed.replace('Usage Tips:', '').trim();
+        } else if (trimmed.startsWith('Fun Fact:')) {
+          result.aiInsights!.funFact = trimmed.replace('Fun Fact:', '').trim();
+        }
+        break;
+      }
       case 'definitions': {
         // Handle main definition lines
-        const bulletWithPOS = trimmed.match(/^• \[([^\]]+)\]\s*(\d+)\.\s*(.+)$/);
+        // Regex handles:
+        // 1. Optional bullet point (•, *, -)
+        // 2. Part of speech in brackets [noun]
+        // 3. Optional numbering 1.
+        // 4. Definition text
+        const bulletWithPOS = trimmed.match(/^[•*-]?\s*\[([^\]]+)\]\s*(?:(\d+)\.)?\s*(.+)$/);
+
         if (bulletWithPOS) {
           if (lastMeaning) {
             currentMeanings.push(lastMeaning);
           }
+          // pos is group 1, number is group 2 (optional), meaning is group 3
           const [, pos, , meaning] = bulletWithPOS;
+
           if (currentPOS && currentPOS !== pos && currentMeanings.length) {
             result.definitions.push({ partOfSpeech: currentPOS, meanings: currentMeanings });
             currentMeanings = [];
           }
           currentPOS = pos;
-          lastMeaning = { meaning };
+          lastMeaning = { meaning: meaning.trim() };
           continue;
         }
 
@@ -386,11 +426,11 @@ export const parseGeminiResponse = (response: string): ParseResult => {
   // This allows the UI to hide these sections completely
   result.synonyms = result.synonyms.filter(s => s.toLowerCase() !== 'none');
   result.antonyms = result.antonyms.filter(a => a.toLowerCase() !== 'none');
-  
+
   // Ensure arrays are empty if they only contained 'none' values
   if (result.synonyms.length === 0) result.synonyms = [];
   if (result.antonyms.length === 0) result.antonyms = [];
-  
+
   if (!result.etymology) {
     result.etymology = 'Etymology information is not available for this word.';
   }

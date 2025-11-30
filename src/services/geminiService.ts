@@ -3,8 +3,7 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // For debugging purposes
-console.log('Gemini API Key available:', !!GEMINI_API_KEY);
-console.log('Gemini API Key value:', GEMINI_API_KEY ? `${GEMINI_API_KEY.substring(0, 4)}...` : 'undefined');
+// console.log('Gemini API Key available:', !!GEMINI_API_KEY);
 
 // Test function to verify API key is working
 export const testGeminiApiKey = async (): Promise<boolean> => {
@@ -83,55 +82,46 @@ export interface ParseResult {
 
 export const getWordDefinition = async (word: string): Promise<string> => {
   const prompt = `
-You are a world - class linguist and dictionary API.For the word "${word}", respond in this exact format:
+    First, verify if "${word}" is a valid word in any major language (English, Hindi, French, Spanish, German, etc.).
+    If it is NOT a valid word or is gibberish/random characters, respond with exactly: WORD_NOT_FOUND
 
-AI INSIGHTS
-Simple Explanation: [A simple, one - sentence explanation for a 5 - year - old]
-Usage Tips: [A practical tip on how to use this word correctly or a common mistake to avoid]
-Fun Fact: [An interesting trivia or historical fact about this word]
+    If it IS a valid word, act as a world-class linguist and dictionary API. Respond in this exact format:
 
-DEFINITIONS
-•[noun] 1. First noun definition
-  - Example: "Example sentence for first noun definition."
-    - Usage: formal
-      - Register: standard
-        - Synonyms: synonym1, synonym2
-          - Antonyms: antonym1, antonym2
-•[noun] 2. Second noun definition
-  - Example: "Example sentence for second noun definition."
-    - Usage: informal
-      - Register: colloquial
-        - Synonyms: synonym3, synonym4
-          - Antonyms: antonym3, antonym4
-•[verb] 1. First verb definition
-  - Example: "Example sentence for first verb definition."
-    - Usage: standard
-      - Register: formal
-        - Synonyms: synonym5, synonym6
-          - Antonyms: antonym5, antonym6
+    AI INSIGHTS
+    Simple Explanation: [A simple, one-sentence explanation for a 5-year-old]
+    Usage Tips: [A practical tip on how to use this word correctly or a common mistake to avoid]
+    Fun Fact: [An interesting trivia or historical fact about this word]
 
-EXAMPLES
-• "Complete example sentence one."
-• "Complete example sentence two."
+    DEFINITIONS
+    • [part_of_speech] 1. First definition
+      - Example: "Example sentence."
+        - Usage: [formal/informal/etc or None]
+          - Register: [standard/colloquial/etc or None]
+            - Synonyms: synonym1, synonym2
+              - Antonyms: antonym1, antonym2
 
-SYNONYMS
-• synonym1, synonym2, synonym3, synonym4, synonym5, synonym6
+    EXAMPLES
+    • "Complete example sentence one."
+    • "Complete example sentence two."
 
-ANTONYMS
-• antonym1, antonym2, antonym3, antonym4, antonym5, antonym6
+    SYNONYMS
+    • synonym1, synonym2, synonym3
 
-ETYMOLOGY
-Origin: Word origin
-Development: Historical development
-Current: Current usage
+    ANTONYMS
+    • antonym1, antonym2, antonym3
 
-Respond using exactly this format.Each definition must:
-1. Start with a bullet point(•)
-2. Include part of speech in square brackets
-3. Include a numbered definition
-4. Include all subfields(Example, Usage, Register, Synonyms, Antonyms)
-If any field is not available, write "None" for that field.
-Do not add any extra text or skip any sections.`;
+    ETYMOLOGY
+    Origin: [Word origin]
+    Development: [Historical development]
+    Current: [Current usage]
+
+    Respond using exactly this format. Each definition must:
+    1. Start with a bullet point (•)
+    2. Include part of speech in square brackets
+    3. Include a numbered definition
+    4. Include all subfields (Example, Usage, Register, Synonyms, Antonyms)
+    If any field is not available, write "None" for that field.
+    Do not add any extra text or skip any sections.`;
 
   try {
     if (!GEMINI_API_KEY) {
@@ -192,6 +182,10 @@ Do not add any extra text or skip any sections.`;
     if (!definition || typeof definition !== 'string') {
       console.error('Invalid Gemini API response format:', data);
       throw new Error('Invalid response format from Gemini API');
+    }
+
+    if (definition.trim() === 'WORD_NOT_FOUND') {
+      throw new Error('Word not found in the dictionary.');
     }
 
     console.log('Successfully parsed Gemini response');

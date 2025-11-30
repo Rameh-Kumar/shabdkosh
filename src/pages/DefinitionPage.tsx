@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Volume2, Heart, BookOpen, Sparkles, Link2, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useWord } from '../contexts/WordContext';
@@ -19,6 +20,7 @@ const sectionVariants = {
 
 const DefinitionPage: React.FC = () => {
   const { word } = useParams<{ word: string }>();
+  const navigate = useNavigate();
   const { initializeWord, wordData, isLoading, error, searchWord } = useWord();
   const { isWordFavorited, addToFavorites, removeFromFavorites } = useDatabase();
   const { showNotification } = useNotification();
@@ -94,20 +96,15 @@ const DefinitionPage: React.FC = () => {
         console.warn('Dictionary API fallback failed', e);
       }
 
-      // 3. Final Fallback: Web Speech API
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(wordData.word);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9; // Slightly slower for clarity
-        utterance.onend = () => setIsPlayingAudio(false);
-        utterance.onerror = () => {
-          setIsPlayingAudio(false);
-          showNotification('Audio unavailable', 'error');
-        };
-        window.speechSynthesis.speak(utterance);
-      } else {
-        throw new Error('No audio source available');
-      }
+      // 3. Fallback to Web Speech API
+      const utterance = new SpeechSynthesisUtterance(wordData.word);
+      utterance.rate = 0.9;
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => {
+        setIsPlayingAudio(false);
+        showNotification('Audio unavailable', 'error');
+      };
+      window.speechSynthesis.speak(utterance);
 
     } catch (e) {
       setIsPlayingAudio(false);
@@ -126,17 +123,28 @@ const DefinitionPage: React.FC = () => {
   }
 
   if (error) {
+    const isNotFound = error.toLowerCase().includes('not found');
     return (
-      <div className="max-w-3xl mx-auto p-8 text-center">
+      <div className="max-w-3xl mx-auto p-8 text-center space-y-8">
+        <SearchBar />
         <div className="glass-panel p-8 rounded-3xl border-red-100 dark:border-red-900/30">
           <h2 className="text-2xl font-bold text-red-500 mb-4">Definition Not Found</h2>
           <p className="text-slate-600 dark:text-slate-300 mb-6">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-primary bg-red-500 hover:bg-red-600 shadow-red-500/30"
-          >
-            Try Again
-          </button>
+          {isNotFound ? (
+            <button
+              onClick={() => navigate('/')}
+              className="btn-primary bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30"
+            >
+              Back to Home
+            </button>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary bg-red-500 hover:bg-red-600 shadow-red-500/30"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     );
@@ -172,8 +180,39 @@ const DefinitionPage: React.FC = () => {
     }];
   }
 
+  // SEO & Structured Data Generation
+  const pageTitle = `${wordData.word} Meaning & Definition - ShabdkoshAI`;
+  const pageDescription = `Define ${wordData.word} with AI insights, usage examples, and synonyms. The most comprehensive AI-powered dictionary.`;
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "DefinedTerm",
+    "name": wordData.word,
+    "description": definitionGroups[0]?.meanings[0]?.meaning || `Definition of ${wordData.word}`,
+    "inLanguage": "en-US",
+    "termCode": wordData.word,
+    "url": window.location.href,
+    "pronunciation": wordData.pronunciation?.text || undefined
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={window.location.href} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <link rel="canonical" href={window.location.href} />
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
+
       {/* Top Search Bar */}
       <div className="mb-8">
         <SearchBar />
@@ -334,7 +373,7 @@ const DefinitionPage: React.FC = () => {
 
                         {(meaning.synonyms?.length > 0 || meaning.antonyms?.length > 0) && (
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm pt-1">
-                            {meaning.synonyms?.length > 0 && (
+                            {meaning.synonyms && meaning.synonyms.length > 0 && (
                               <div className="flex items-center gap-2">
                                 <span className="text-indigo-500 font-bold text-xs uppercase tracking-wide">Synonyms</span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -364,43 +403,42 @@ const DefinitionPage: React.FC = () => {
 
       {/* Examples & Etymology Grid */}
       <div className="grid md:grid-cols-2 gap-6">
-        {wordData.examples.length > 0 && (
+        {/* Examples */}
+        {wordData.examples && wordData.examples.length > 0 && (
           <motion.section
-            custom={1}
-            initial="hidden"
-            animate="visible"
-            variants={sectionVariants}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
             className="glass-panel rounded-3xl p-8"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
-                <Sparkles size={20} />
+                <Link2 size={20} />
               </div>
               <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">Examples</h2>
             </div>
             <ul className="space-y-4">
-              {wordData.examples.slice(0, 4).map((ex, i) => (
-                <li key={i} className="flex gap-3 text-slate-600 dark:text-slate-300 italic leading-relaxed">
-                  <span className="text-emerald-400 font-serif">"</span>
-                  {ex}
-                  <span className="text-emerald-400 font-serif">"</span>
+              {wordData.examples.map((example, idx) => (
+                <li key={idx} className="flex gap-3 text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <span className="text-emerald-500 font-bold">•</span>
+                  <span>{example}</span>
                 </li>
               ))}
             </ul>
           </motion.section>
         )}
 
+        {/* Etymology */}
         {wordData.etymology && (
           <motion.section
-            custom={2}
-            initial="hidden"
-            animate="visible"
-            variants={sectionVariants}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
             className="glass-panel rounded-3xl p-8"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
-                <Link2 size={20} />
+                <BookOpen size={20} />
               </div>
               <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">Etymology</h2>
             </div>
@@ -422,6 +460,7 @@ const ActionButton = ({ onClick, icon, label, active = false }: { onClick: () =>
       : 'bg-white/10 text-white hover:bg-white/20'
       }`}
     title={label}
+    aria-label={label}
   >
     {icon}
   </button>

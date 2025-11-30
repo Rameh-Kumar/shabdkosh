@@ -14,37 +14,37 @@ interface WordResponse {
 }
 
 // Function to fetch pronunciation audio from Free Dictionary API
-const fetchPronunciationAudio = async (word: string): Promise<{text: string, audio?: string}> => {
+const fetchPronunciationAudio = async (word: string): Promise<{ text: string, audio?: string }> => {
   try {
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
-    
+
     if (!response.ok) {
       console.warn(`Could not fetch pronunciation for "${word}" from Free Dictionary API`);
       return { text: word }; // Use the word itself instead of empty string
     }
-    
+
     const data = await response.json();
-    
+
     if (Array.isArray(data) && data.length > 0) {
       // Extract phonetics information
       const phonetics = data[0].phonetics || [];
-      
+
       // Find the first phonetic entry with audio
       const phoneticWithAudio = phonetics.find((p: any) => p.audio && p.audio.trim() !== '');
-      
+
       if (phoneticWithAudio) {
         return {
           text: phoneticWithAudio.text || data[0].phonetic || word, // Fallback to word
           audio: phoneticWithAudio.audio
         };
       }
-      
+
       // If no audio but phonetic text exists
       if (data[0].phonetic) {
         return { text: data[0].phonetic };
       }
     }
-    
+
     return { text: word }; // Use the word itself instead of empty string
   } catch (error) {
     console.error('Error fetching pronunciation:', error);
@@ -58,10 +58,10 @@ export const fetchWordDefinition = async (word: string): Promise<WordResponse> =
     const geminiResponse = await getWordDefinition(word);
     const parsedData = parseGeminiResponse(geminiResponse);
     console.log(`WordService: Successfully parsed definition for "${word}"`);
-    
+
     // Fetch pronunciation audio
     const pronunciation = await fetchPronunciationAudio(word);
-    
+
     // Filter out 'none' values from synonyms and antonyms
     const synonyms = parsedData.synonyms?.filter(syn => syn.toLowerCase() !== 'none') || [];
     const antonyms = parsedData.antonyms?.filter(ant => ant.toLowerCase() !== 'none') || [];
@@ -76,12 +76,14 @@ export const fetchWordDefinition = async (word: string): Promise<WordResponse> =
     };
   } catch (error: any) {
     console.error('Error fetching word definition:', error);
-    
+
     // Create a more specific error message based on the error type
     let errorMessage = 'Unable to fetch definition. Please try again later.';
-    
+
     if (error.message.includes('API key')) {
       errorMessage = 'Dictionary service is not properly configured. Please check your API key.';
+    } else if (error.message.toLowerCase().includes('not found')) {
+      errorMessage = 'Definition Not Found: The word you are looking for does not exist in our dictionary.';
     } else if (error.message.includes('network') || error.message.includes('fetch')) {
       errorMessage = 'Network error. Please check your internet connection and try again.';
     } else if (error.message.includes('timeout')) {
@@ -136,22 +138,22 @@ export const fetchWordOfTheDay = async (): Promise<WordResponse> => {
       'cognizant', 'benevolent', 'cacophony', 'diaphanous', 'ebullient',
       'fastidious', 'garrulous', 'halcyon', 'ineffable', 'juxtapose'
     ];
-    
+
     // Use the current date to select a word (ensures the same word is shown all day)
     const today = new Date();
     const dateString = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
     const dateHash = Array.from(dateString).reduce((hash, char) => {
       return ((hash << 5) - hash) + char.charCodeAt(0);
     }, 0);
-    
+
     const wordIndex = Math.abs(dateHash) % wordList.length;
     const wordOfTheDay = wordList[wordIndex];
-    
+
     // Fetch the actual definition using our existing function
     return await fetchWordDefinition(wordOfTheDay);
   } catch (error) {
     console.error('Error fetching word of the day:', error);
-    
+
     // Fallback response if API fails
     return {
       word: 'serendipity',
@@ -183,10 +185,10 @@ let trendingWordsCache: { word: string, count: number, timestamp: string }[] = [
 export const trackWordSearch = (word: string): void => {
   // Don't track very short words
   if (word.length < 3) return;
-  
+
   const now = new Date().toISOString();
   const existingIndex = trendingWordsCache.findIndex(item => item.word === word);
-  
+
   if (existingIndex >= 0) {
     // Update existing word count and timestamp
     trendingWordsCache[existingIndex].count += 1;
@@ -199,7 +201,7 @@ export const trackWordSearch = (word: string): void => {
       timestamp: now
     });
   }
-  
+
   // Keep only the most recent 100 entries to prevent memory issues
   if (trendingWordsCache.length > 100) {
     trendingWordsCache = trendingWordsCache
@@ -213,29 +215,29 @@ export const fetchTrendingWords = async (limit: number = 3): Promise<WordRespons
     // Filter out entries older than 7 days
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const recentWords = trendingWordsCache.filter(item => 
+    const recentWords = trendingWordsCache.filter(item =>
       new Date(item.timestamp) > oneWeekAgo
     );
-    
+
     // Sort by count (most searched first)
     const sortedWords = recentWords
       .sort((a, b) => b.count - a.count)
       .slice(0, limit)
       .map(item => item.word);
-    
+
     // If we have trending words, fetch their definitions
     if (sortedWords.length > 0) {
       const wordPromises = sortedWords.map(word => fetchWordDefinition(word));
       return await Promise.all(wordPromises);
     }
-    
+
     // Fallback to default trending words if no real trends exist yet
     const defaultTrendingWords = ['paradigm', 'ephemeral', 'ubiquitous'];
     const defaultPromises = defaultTrendingWords.map(word => fetchWordDefinition(word));
     return await Promise.all(defaultPromises);
   } catch (error) {
     console.error('Error fetching trending words:', error);
-    
+
     // Fallback trending words if API fails
     return [
       {
@@ -243,7 +245,7 @@ export const fetchTrendingWords = async (limit: number = 3): Promise<WordRespons
         pronunciation: { text: '/ˈpærəˌdaɪm/' },
         definitions: [{
           partOfSpeech: 'noun',
-          meanings: [{ 
+          meanings: [{
             meaning: 'A typical example or pattern of something',
             example: 'This is a paradigm of excellence'
           }]

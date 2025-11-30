@@ -32,20 +32,6 @@ export const WordProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { getWord, saveWord, addToHistory, isWordOffline } = useDatabase();
   const { showNotification } = useNotification();
 
-  // Test API key on component mount
-  useEffect(() => {
-    const checkApiKey = async () => {
-      const isValid = await testGeminiApiKey();
-      setApiKeyValid(isValid);
-      if (!isValid) {
-        console.error('Gemini API key validation failed');
-        // showNotification('Dictionary service configuration issue detected', 'error');
-      }
-    };
-
-    checkApiKey();
-  }, [showNotification]);
-
   // Function to fetch word data without navigation
   const initializeWord = async (word: string): Promise<void> => {
     if (!word.trim()) return;

@@ -98,53 +98,53 @@ const DefinitionPage: React.FC = () => {
 
       // 3. Fallback to Web Speech API
       const utterance = new SpeechSynthesisUtterance(wordData.word);
-      utterance.rate = 0.9;
+      utterance.rate = 0.8;
       utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => {
-        setIsPlayingAudio(false);
-        showNotification('Audio unavailable', 'error');
-      };
+      utterance.onerror = () => setIsPlayingAudio(false);
       window.speechSynthesis.speak(utterance);
-
-    } catch (e) {
+    } catch (error) {
+      console.error('Audio playback failed:', error);
       setIsPlayingAudio(false);
-      showNotification('Audio unavailable', 'error');
+      showNotification('Could not play pronunciation', 'error');
     }
   };
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-4 space-y-8 animate-pulse">
-        <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl w-full"></div>
-        <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-3xl w-full"></div>
-        <div className="h-40 bg-slate-200 dark:bg-slate-700 rounded-3xl w-full"></div>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Sparkles size={20} className="text-indigo-400 animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     const isNotFound = error.toLowerCase().includes('not found');
+
     return (
-      <div className="max-w-3xl mx-auto p-8 text-center space-y-8">
-        <SearchBar />
-        <div className="glass-panel p-8 rounded-3xl border-red-100 dark:border-red-900/30">
-          <h2 className="text-2xl font-bold text-red-500 mb-4">Definition Not Found</h2>
+      <div className="max-w-3xl mx-auto p-8 text-center">
+        <div className="glass-panel p-8 rounded-3xl border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">
+            {isNotFound ? 'Word Not Found' : 'Something went wrong'}
+          </h2>
           <p className="text-slate-600 dark:text-slate-300 mb-6">{error}</p>
-          {isNotFound ? (
-            <button
-              onClick={() => navigate('/')}
-              className="btn-primary bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30"
-            >
-              Back to Home
-            </button>
-          ) : (
-            <button
-              onClick={() => window.location.reload()}
-              className="btn-primary bg-red-500 hover:bg-red-600 shadow-red-500/30"
-            >
-              Try Again
-            </button>
+
+          {isNotFound && (
+            <div className="mb-8">
+              <SearchBar />
+            </div>
           )}
+
+          <button
+            onClick={() => isNotFound ? navigate('/') : window.location.reload()}
+            className="btn-primary bg-red-500 hover:bg-red-600 shadow-red-500/30"
+          >
+            {isNotFound ? 'Back to Home' : 'Try Again'}
+          </button>
         </div>
       </div>
     );
@@ -152,106 +152,58 @@ const DefinitionPage: React.FC = () => {
 
   if (!wordData) return null;
 
-  // Normalization logic
-  let definitionGroups: DefinitionGroup[] = [];
-  if (Array.isArray(wordData.definitions)) {
-    if (wordData.definitions.length > 0) {
-      if (typeof wordData.definitions[0] === 'object' && wordData.definitions[0] !== null && 'meanings' in wordData.definitions[0]) {
-        definitionGroups = wordData.definitions as DefinitionGroup[];
-      } else {
-        const flatDefs = wordData.definitions as Array<{ partOfSpeech: string; meaning: string; example?: string }>;
-        const groupMap: Record<string, MeaningDetail[]> = {};
-        flatDefs.forEach(def => {
-          if (!groupMap[def.partOfSpeech]) groupMap[def.partOfSpeech] = [];
-          groupMap[def.partOfSpeech].push({
-            meaning: def.meaning,
-            example: def.example
-          });
-        });
-        definitionGroups = Object.entries(groupMap).map(([partOfSpeech, meanings]) => ({ partOfSpeech, meanings }));
-      }
-    }
-  }
-
-  if (definitionGroups.length === 0) {
-    definitionGroups = [{
-      partOfSpeech: 'unknown',
-      meanings: [{ meaning: 'No definition found for this word.' }]
-    }];
-  }
-
-  // SEO & Structured Data Generation
-  const pageTitle = `${wordData.word} Meaning & Definition - ShabdkoshAI`;
-  const pageDescription = `Define ${wordData.word} with AI insights, usage examples, and synonyms. The most comprehensive AI-powered dictionary.`;
-
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "DefinedTerm",
-    "name": wordData.word,
-    "description": definitionGroups[0]?.meanings[0]?.meaning || `Definition of ${wordData.word}`,
-    "inLanguage": "en-US",
-    "termCode": wordData.word,
-    "url": window.location.href,
-    "pronunciation": wordData.pronunciation?.text || undefined
-  };
+  const definitionGroups = wordData.definitions as DefinitionGroup[];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
       <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:type" content="article" />
-        <meta property="og:url" content={window.location.href} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-        <link rel="canonical" href={window.location.href} />
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
+        <title>{wordData.word} - Definition, Meaning & Usage | ShabdkoshAI</title>
+        <meta name="description" content={`Definition of ${wordData.word}: ${definitionGroups[0]?.meanings[0]?.meaning}`} />
       </Helmet>
 
-      {/* Top Search Bar */}
-      <div className="mb-8">
-        <SearchBar />
-      </div>
-
-      {/* Word Header Card */}
+      {/* Header Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 md:p-12 text-white shadow-2xl"
+        className="glass-panel rounded-3xl overflow-hidden relative"
       >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
-
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <h1 className="text-5xl md:text-7xl font-serif font-bold tracking-tight mb-4 drop-shadow-md">
-              {wordData.word}
-            </h1>
-            <div className="flex items-center gap-4">
-              <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-xl font-mono text-lg tracking-wide border border-white/10">
-                {wordData.pronunciation?.text || "/.../"}
-              </span>
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+        <div className="p-8 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-baseline gap-4 mb-2">
+                <h1 className="text-4xl md:text-6xl font-serif font-bold text-slate-900 dark:text-white tracking-tight">
+                  {wordData.word}
+                </h1>
+                {wordData.pronunciation?.text && (
+                  <span className="text-xl text-slate-500 dark:text-slate-400 font-mono">
+                    {wordData.pronunciation.text}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {definitionGroups.map((g, i) => (
+                  <span key={i} className="px-3 py-1 rounded-full text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    {g.partOfSpeech}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <ActionButton
-              onClick={playAudio}
-              icon={<Volume2 size={24} className={isPlayingAudio ? "animate-pulse" : ""} />}
-              label="Pronounce"
-              active={isPlayingAudio}
-            />
-            <ActionButton
-              onClick={handleFavoriteClick}
-              icon={<Heart size={24} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "text-pink-400" : ""} />}
-              label="Favorite"
-              active={isFavorited}
-            />
+            <div className="flex items-center gap-3">
+              <ActionButton
+                onClick={playAudio}
+                icon={<Volume2 size={24} className={isPlayingAudio ? "animate-pulse" : ""} />}
+                label="Pronounce"
+                active={isPlayingAudio}
+              />
+              <ActionButton
+                onClick={handleFavoriteClick}
+                icon={<Heart size={24} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "text-pink-400" : ""} />}
+                label="Favorite"
+                active={isFavorited}
+              />
+            </div>
           </div>
         </div>
       </motion.div>
@@ -437,19 +389,46 @@ const DefinitionPage: React.FC = () => {
             className="glass-panel rounded-3xl p-8"
           >
             <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
+                <BookOpen size={20} />
+              </div>
+              <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">Etymology</h2>
+            </div>
+            <div className="text-slate-600 dark:text-slate-300 leading-relaxed space-y-4">
+              {wordData.etymology.includes('Origin:') ? (
+                wordData.etymology.split(/(?=(?:Origin|Development|Current):)/g).map((part, i) => {
+                  const [label, ...content] = part.split(':');
+                  if (!content.length) return null;
+                  return (
+                    <div key={i}>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{label}:</span>
+                      <span>{content.join(':')}</span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p>{wordData.etymology}</p>
+              )}
+            </div>
+          </motion.section>
+        )}
+      </div>
+    </div>
+  );
+};
 
-              const ActionButton = ({onClick, icon, label, active = false}: {onClick: () => void, icon: React.ReactNode, label: string, active?: boolean }) => (
-              <button
-                onClick={onClick}
-                className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${active
-                  ? 'bg-white text-indigo-600 shadow-lg scale-105'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                title={label}
-                aria-label={label}
-              >
-                {icon}
-              </button>
-              );
+const ActionButton = ({ onClick, icon, label, active = false }: { onClick: () => void, icon: React.ReactNode, label: string, active?: boolean }) => (
+  <button
+    onClick={onClick}
+    className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${active
+      ? 'bg-white text-indigo-600 shadow-lg scale-105'
+      : 'bg-white/10 text-white hover:bg-white/20'
+      }`}
+    title={label}
+    aria-label={label}
+  >
+    {icon}
+  </button>
+);
 
-              export default DefinitionPage;
+export default DefinitionPage;

@@ -16,7 +16,7 @@ const Header: React.FC<HeaderProps> = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b-0 rounded-b-2xl mx-2 mt-2">
+    <header className="sticky top-0 z-50 glass-panel border-b-0 transition-all duration-300 mx-0 mt-0 rounded-b-xl md:mx-4 md:mt-4 md:rounded-2xl pt-[env(safe-area-inset-top)]">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center group">
           <div className="relative w-10 h-10 mr-3 transition-transform duration-300 group-hover:scale-110">
@@ -61,8 +61,8 @@ const NavLink = ({ to, icon, label, active }: { to: string, icon: React.ReactNod
   <Link
     to={to}
     className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 ${active
-        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm font-medium'
-        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm font-medium'
+      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
       }`}
   >
     {icon}
@@ -74,8 +74,8 @@ const MobileNavLink = ({ to, icon, label, active }: { to: string, icon: React.Re
   <Link
     to={to}
     className={`flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${active
-        ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
-        : 'text-slate-500 dark:text-slate-400'
+      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
+      : 'text-slate-500 dark:text-slate-400'
       }`}
   >
     {icon}

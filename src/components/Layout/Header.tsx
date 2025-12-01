@@ -26,7 +26,7 @@ const Header: React.FC<HeaderProps> = () => {
             </div>
           </div>
           <h1 className="text-2xl font-serif font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-            Shabdkosh<span className="text-indigo-500">AI</span>
+            Shabdkosh<span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent animate-pulse">AI</span>
           </h1>
         </Link>
 
@@ -46,13 +46,6 @@ const Header: React.FC<HeaderProps> = () => {
           </button>
         </div>
       </div>
-
-      {/* Mobile Navigation Bottom Bar */}
-      <div className="md:hidden fixed bottom-4 left-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/30 p-2 flex justify-around items-center z-50">
-        <MobileNavLink to="/" icon={<Book size={24} />} label="Dictionary" active={isActive('/')} />
-        <MobileNavLink to="/history" icon={<Clock size={24} />} label="History" active={isActive('/history')} />
-        <MobileNavLink to="/favorites" icon={<Heart size={24} />} label="Favorites" active={isActive('/favorites')} />
-      </div>
     </header>
   );
 };
@@ -67,19 +60,6 @@ const NavLink = ({ to, icon, label, active }: { to: string, icon: React.ReactNod
   >
     {icon}
     <span>{label}</span>
-  </Link>
-);
-
-const MobileNavLink = ({ to, icon, label, active }: { to: string, icon: React.ReactNode, label: string, active: boolean }) => (
-  <Link
-    to={to}
-    className={`flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${active
-      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
-      : 'text-slate-500 dark:text-slate-400'
-      }`}
-  >
-    {icon}
-    <span className="text-[10px] font-medium mt-1">{label}</span>
   </Link>
 );
 

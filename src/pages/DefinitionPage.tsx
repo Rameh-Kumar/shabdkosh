@@ -437,33 +437,19 @@ const DefinitionPage: React.FC = () => {
             className="glass-panel rounded-3xl p-8"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
-                <BookOpen size={20} />
-              </div>
-              <h2 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">Etymology</h2>
-            </div>
-            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-              {wordData.etymology}
-            </p>
-          </motion.section>
-        )}
-      </div>
-    </div>
-  );
-};
 
-const ActionButton = ({ onClick, icon, label, active = false }: { onClick: () => void, icon: React.ReactNode, label: string, active?: boolean }) => (
-  <button
-    onClick={onClick}
-    className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${active
-      ? 'bg-white text-indigo-600 shadow-lg scale-105'
-      : 'bg-white/10 text-white hover:bg-white/20'
-      }`}
-    title={label}
-    aria-label={label}
-  >
-    {icon}
-  </button>
-);
+              const ActionButton = ({onClick, icon, label, active = false}: {onClick: () => void, icon: React.ReactNode, label: string, active?: boolean }) => (
+              <button
+                onClick={onClick}
+                className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${active
+                  ? 'bg-white text-indigo-600 shadow-lg scale-105'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                title={label}
+                aria-label={label}
+              >
+                {icon}
+              </button>
+              );
 
-export default DefinitionPage;
+              export default DefinitionPage;

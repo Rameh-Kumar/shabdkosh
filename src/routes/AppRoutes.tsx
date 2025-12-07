@@ -6,6 +6,10 @@ import FavoritesPage from '../pages/FavoritesPage';
 import HistoryPage from '../pages/HistoryPage';
 import OfflinePage from '../pages/OfflinePage';
 import NotFoundPage from '../pages/NotFoundPage';
+import AboutPage from '../pages/AboutPage';
+import ContactPage from '../pages/ContactPage';
+import PrivacyPage from '../pages/PrivacyPage';
+import TermsPage from '../pages/TermsPage';
 
 const AppRoutes: React.FC = () => {
   const location = useLocation();
@@ -22,6 +26,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/favorites" element={<FavoritesPage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/offline" element={<OfflinePage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route path="/404" element={<NotFoundPage />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>

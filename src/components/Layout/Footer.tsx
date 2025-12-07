@@ -1,24 +1,35 @@
 import React from 'react';
 import { Twitter, Facebook, Instagram, Linkedin, Heart } from 'lucide-react';
 
+import { Link } from 'react-router-dom';
+
 const Footer: React.FC = () => {
   return (
-    <footer className="mt-12 py-8 border-t border-slate-200 dark:border-slate-800">
-      <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-          &copy; {new Date().getFullYear()} ShabdkoshAI. All rights reserved.
+    <footer className="mt-12 py-8 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+          <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+            &copy; {new Date().getFullYear()} ShabdkoshAI. All rights reserved.
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+            <Link to="/about" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">About</Link>
+            <Link to="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Contact</Link>
+            <Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Terms</Link>
+          </div>
+
+          <div className="flex space-x-4">
+            <SocialLink href="https://x.com/GoatRameshSahni" icon={<Twitter size={18} />} />
+            <SocialLink href="https://instagram.com" icon={<Instagram size={18} />} />
+            <SocialLink href="https://linkedin.com" icon={<Linkedin size={18} />} />
+          </div>
         </div>
 
-        <div className="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex justify-center flex-col md:flex-row items-center gap-2 text-sm text-slate-500 dark:text-slate-400 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
           <span>Made with</span>
           <Heart size={14} className="text-pink-500 fill-pink-500" />
           <span>for word lovers</span>
-        </div>
-
-        <div className="flex space-x-4">
-          <SocialLink href="https://x.com/GoatRameshSahni" icon={<Twitter size={18} />} />
-          <SocialLink href="https://instagram.com" icon={<Instagram size={18} />} />
-          <SocialLink href="https://linkedin.com" icon={<Linkedin size={18} />} />
         </div>
       </div>
     </footer>

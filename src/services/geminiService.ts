@@ -85,10 +85,18 @@ export const getWordDefinition = async (word: string): Promise<string> => {
     First, verify if "${word}" is a valid word in any major language (English, Hindi, French, Spanish, German, etc.).
     If it is NOT a valid word or is gibberish/random characters, respond with exactly: WORD_NOT_FOUND
 
-    If it IS a valid word, act as a world-class linguist and dictionary API. Respond in this exact format:
+    If it IS a valid word, act as a world-class linguist and dictionary API.
+    
+    CRITICAL INSTRUCTION FOR NON-ENGLISH WORDS:
+    If "${word}" is NOT in English (e.g., "Gato" is Spanish, "Hund" is German):
+    1. Identify the source language.
+    2. Provide definitions for the ENGLISH TRANSLATION of the word.
+    3. In the "Simple Explanation" section, START with: "([Source Language] word for '[English Translation]')".
+
+    Respond in this exact format:
 
     AI INSIGHTS
-    Simple Explanation: [A simple, one-sentence explanation for a 5-year-old]
+    Simple Explanation: [If foreign: "(Language for 'Translation') " followed by simple explanation. If English: Simple, one-sentence explanation]
     Usage Tips: [A practical tip on how to use this word correctly or a common mistake to avoid]
     Fun Fact: [An interesting trivia or historical fact about this word]
 

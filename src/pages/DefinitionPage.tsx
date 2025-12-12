@@ -6,8 +6,10 @@ import { motion } from 'framer-motion';
 import { useWord } from '../contexts/WordContext';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useNotification } from '../contexts/NotificationContext';
-import type { DefinitionGroup, MeaningDetail } from '../services/geminiService';
+import type { DefinitionGroup } from '../services/geminiService';
 import SearchBar from '../components/search/SearchBar';
+import AdUnit from '../components/ads/AdUnit';
+import Skeleton from '../components/ui/Skeleton';
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -111,15 +113,65 @@ const DefinitionPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles size={20} className="text-indigo-400 animate-pulse" />
+      <div className="max-w-4xl mx-auto space-y-8 pb-20">
+        {/* Header Skeleton */}
+        <div className="glass-panel p-8 md:p-10 rounded-3xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-slate-200 dark:bg-slate-700/50" />
+          <div className="flex flex-col md:flex-row justify-between gap-6">
+            <div className="space-y-4">
+              <Skeleton width={300} height={60} className="mb-2" />
+              <Skeleton width={150} height={24} />
+              <div className="flex gap-2 mt-4">
+                <Skeleton width={80} height={32} variant="circular" />
+                <Skeleton width={80} height={32} variant="circular" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Skeleton width={48} height={48} variant="rectangular" />
+              <Skeleton width={48} height={48} variant="rectangular" />
+            </div>
+          </div>
+        </div>
+
+        {/* AI Insights Skeleton */}
+        <div className="glass-panel rounded-3xl p-8">
+          <Skeleton width={150} height={32} className="mb-6" />
+          <div className="grid md:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-3">
+                <Skeleton width={120} height={24} />
+                <Skeleton height={100} className="w-full rounded-2xl" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Definitions Skeleton */}
+        <div className="glass-panel rounded-3xl p-8">
+          <Skeleton width={180} height={32} className="mb-8" />
+          <div className="space-y-12">
+            {[1, 2].map(i => (
+              <div key={i} className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <Skeleton width={100} height={32} className="rounded-lg" />
+                  <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700/50" />
+                </div>
+                <div className="space-y-6 pl-6">
+                  <div className="flex gap-4">
+                    <Skeleton width={20} height={20} />
+                    <div className="flex-1 space-y-3">
+                      <Skeleton width="90%" height={24} />
+                      <Skeleton width="60%" height={24} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     );
+
   }
 
   if (error) {
@@ -168,15 +220,15 @@ const DefinitionPage: React.FC = () => {
         className="glass-panel rounded-3xl overflow-hidden relative"
       >
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-        <div className="p-8 md:p-10">
+        <div className="p-5 md:p-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <div className="flex items-baseline gap-4 mb-2">
-                <h1 className="text-4xl md:text-6xl font-serif font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="flex items-baseline gap-4 mb-3 flex-wrap">
+                <h1 className="text-4xl md:text-6xl font-serif font-bold text-slate-900 dark:text-white tracking-tight break-words">
                   {wordData.word}
                 </h1>
                 {wordData.pronunciation?.text && (
-                  <span className="text-xl text-slate-500 dark:text-slate-400 font-mono">
+                  <span className="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-mono">
                     {wordData.pronunciation.text}
                   </span>
                 )}
@@ -190,7 +242,7 @@ const DefinitionPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 self-start md:self-auto">
               <ActionButton
                 onClick={playAudio}
                 icon={<Volume2 size={24} className={isPlayingAudio ? "animate-pulse" : ""} />}
@@ -256,6 +308,9 @@ const DefinitionPage: React.FC = () => {
           </div>
         </motion.section>
       )}
+
+      {/* In-Article Ad Unit */}
+      <AdUnit slot="8899513285" />
 
       {/* Definitions */}
       <motion.section
@@ -323,20 +378,26 @@ const DefinitionPage: React.FC = () => {
                           </div>
                         )}
 
-                        {(meaning.synonyms?.length > 0 || meaning.antonyms?.length > 0) && (
-                          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm pt-1">
+                        {((meaning.synonyms?.length ?? 0) > 0 || (meaning.antonyms?.length ?? 0) > 0) && (
+                          <div className="pt-2">
                             {meaning.synonyms && meaning.synonyms.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-indigo-500 font-bold text-xs uppercase tracking-wide">Synonyms</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {meaning.synonyms.slice(0, 4).map(syn => (
-                                    <span
+                              <div className="space-y-2">
+                                <span className="text-indigo-500 font-bold text-xs uppercase tracking-wide flex items-center gap-2">
+                                  Synonyms
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
+                                    {meaning.synonyms.length}
+                                  </span>
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                  {meaning.synonyms.map(syn => (
+                                    <button
                                       key={syn}
-                                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800/50 rounded-md text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer transition-colors text-xs font-medium"
                                       onClick={() => searchWord(syn)}
+                                      className="group px-3 py-1.5 bg-slate-50 hover:bg-white dark:bg-slate-800/50 dark:hover:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 text-sm font-medium shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1"
                                     >
                                       {syn}
-                                    </span>
+                                      <Link2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity -ml-3 group-hover:ml-0 overflow-hidden w-0 group-hover:w-auto" />
+                                    </button>
                                   ))}
                                 </div>
                               </div>
@@ -420,9 +481,9 @@ const DefinitionPage: React.FC = () => {
 const ActionButton = ({ onClick, icon, label, active = false }: { onClick: () => void, icon: React.ReactNode, label: string, active?: boolean }) => (
   <button
     onClick={onClick}
-    className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${active
-      ? 'bg-white text-indigo-600 shadow-lg scale-105'
-      : 'bg-white/10 text-white hover:bg-white/20'
+    className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 border ${active
+      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-105 border-transparent'
+      : 'bg-white dark:bg-white/10 text-slate-500 dark:text-white border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-white/30 hover:text-indigo-600 dark:hover:text-indigo-300 hover:shadow-md'
       }`}
     title={label}
     aria-label={label}

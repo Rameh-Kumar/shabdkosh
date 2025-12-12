@@ -13,14 +13,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-500">
+    <div className="min-h-screen flex flex-col transition-colors duration-500 pb-40 md:pb-0">
       <Header />
 
       <main className="flex-1 container mx-auto px-4 py-8 md:py-12 max-w-5xl md:mb-0">
         {children}
       </main>
 
-      <div className="pb-40 md:pb-0">
+      <div>
         <Footer />
       </div>
 
